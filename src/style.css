@@ -41,6 +41,18 @@ body {
   gap: 24px;
 }
 
+#app[data-screen='intro'] #game-screen {
+  display: none;
+}
+
+#app[data-screen='playing'] #start-screen {
+  display: none;
+}
+
+#app[data-screen='playing'] #game-screen {
+  display: grid;
+}
+
 .app-title {
   margin: 0;
   font-size: clamp(2rem, 5vw, 3.5rem);
