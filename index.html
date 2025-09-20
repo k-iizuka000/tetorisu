@@ -6,8 +6,13 @@
     <title>Tetorisu MVP</title>
   </head>
   <body>
-    <div id="app">
-      <section id="start-screen" class="start-screen" aria-label="ゲームの導入">
+    <div id="app" data-screen="intro">
+      <section
+        id="start-screen"
+        class="start-screen"
+        aria-label="ゲームの導入"
+        aria-hidden="false"
+      >
         <h1 class="app-title">Tetorisu Party!</h1>
         <button
           id="start-button"
@@ -18,7 +23,13 @@
           ゲームスタート
         </button>
       </section>
-      <main id="game-screen" class="layout" role="application" hidden>
+      <main
+        id="game-screen"
+        class="layout"
+        role="application"
+        aria-hidden="true"
+        hidden
+      >
         <section class="playfield" aria-label="ゲームフィールド">
           <canvas id="playfield" width="360" height="720" aria-label="テトリスの盤面"></canvas>
         </section>
