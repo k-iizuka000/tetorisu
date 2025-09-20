@@ -142,6 +142,7 @@ body {
   background: #151b24;
   border-radius: 8px;
   image-rendering: pixelated;
+  touch-action: none;
 }
 
 .sidebar {

@@ -20,6 +20,10 @@ const PIECE_COLORS: Record<PieceType, string> = {
 
 const GRID_COLOR = 'rgba(255, 255, 255, 0.08)'
 
+const SWIPE_THRESHOLD = 24
+const TAP_SLOP = 10
+const LONG_PRESS_DURATION_MS = 350
+
 export interface AppOptions {
   playfieldCanvas: HTMLCanvasElement
   nextCanvas: HTMLCanvasElement
@@ -29,14 +33,25 @@ export interface AppOptions {
 export class GameApp {
   private readonly game = new Game()
   private readonly loop: GameLoop
+  private readonly playfieldCanvas: HTMLCanvasElement
   private readonly playfieldCtx: CanvasRenderingContext2D
   private readonly nextCtx: CanvasRenderingContext2D
   private readonly pauseButton: HTMLButtonElement
   private readonly scoreElement: HTMLElement
   private currentState: GameViewState | null = null
   private hasStarted = false
+  private activePointerId: number | null = null
+  private pointerStartX = 0
+  private pointerStartY = 0
+  private pointerStartTime = 0
+  private pointerHandled = false
+  private softDropEngaged = false
+  private lastSoftDropOffset = 0
+  private longPressTimeoutId: number | null = null
+  private longPressTriggered = false
 
   constructor(options: AppOptions) {
+    this.playfieldCanvas = options.playfieldCanvas
     const playfieldCtx = options.playfieldCanvas.getContext('2d')
     const nextCtx = options.nextCanvas.getContext('2d')
 
@@ -56,6 +71,7 @@ export class GameApp {
 
     this.bindPauseButton()
     this.bindKeyboard()
+    this.bindTouchControls()
   }
 
   start() {
@@ -85,6 +101,12 @@ export class GameApp {
     this.pauseButton.removeEventListener('click', this.handlePauseClick)
     window.removeEventListener('keydown', this.handleKeyDown)
     window.removeEventListener('keyup', this.handleKeyUp)
+    this.playfieldCanvas.removeEventListener('pointerdown', this.handlePointerDown)
+    this.playfieldCanvas.removeEventListener('pointermove', this.handlePointerMove)
+    this.playfieldCanvas.removeEventListener('pointerup', this.handlePointerUp)
+    this.playfieldCanvas.removeEventListener('pointercancel', this.handlePointerCancel)
+    this.playfieldCanvas.removeEventListener('pointerleave', this.handlePointerCancel)
+    this.clearLongPressTimer()
   }
 
   private handleFrame(result: GameTickResult) {
@@ -105,6 +127,15 @@ export class GameApp {
   private bindKeyboard() {
     window.addEventListener('keydown', this.handleKeyDown)
     window.addEventListener('keyup', this.handleKeyUp)
+  }
+
+  private bindTouchControls() {
+    const canvas = this.playfieldCanvas
+    canvas.addEventListener('pointerdown', this.handlePointerDown)
+    canvas.addEventListener('pointermove', this.handlePointerMove)
+    canvas.addEventListener('pointerup', this.handlePointerUp)
+    canvas.addEventListener('pointercancel', this.handlePointerCancel)
+    canvas.addEventListener('pointerleave', this.handlePointerCancel)
   }
 
   private readonly handleKeyDown = (event: KeyboardEvent) => {
@@ -146,6 +177,168 @@ export class GameApp {
     if (event.key === 'ArrowDown') {
       this.loop.setSoftDrop(false)
     }
+  }
+
+  private readonly handlePointerDown = (event: PointerEvent) => {
+    if (!event.isPrimary) return
+    if (!this.hasStarted) return
+
+    const state = this.currentState
+    if (state?.isPaused || state?.isGameOver) return
+
+    this.playfieldCanvas.setPointerCapture(event.pointerId)
+    this.activePointerId = event.pointerId
+    this.pointerStartX = event.clientX
+    this.pointerStartY = event.clientY
+    this.pointerStartTime = performance.now()
+    this.pointerHandled = false
+    this.softDropEngaged = false
+    this.lastSoftDropOffset = 0
+    this.longPressTriggered = false
+    this.clearLongPressTimer()
+    this.longPressTimeoutId = window.setTimeout(() => {
+      if (this.activePointerId === event.pointerId && !this.pointerHandled) {
+        this.loop.rotateCounterClockwise()
+        this.longPressTriggered = true
+        this.pointerHandled = true
+      }
+      this.longPressTimeoutId = null
+    }, LONG_PRESS_DURATION_MS)
+  }
+
+  private readonly handlePointerMove = (event: PointerEvent) => {
+    if (event.pointerId !== this.activePointerId) return
+    if (!this.hasStarted) return
+
+    const state = this.currentState
+    if (state?.isPaused || state?.isGameOver) return
+
+    const dx = event.clientX - this.pointerStartX
+    const dy = event.clientY - this.pointerStartY
+    const absDx = Math.abs(dx)
+    const absDy = Math.abs(dy)
+
+    if (absDx > TAP_SLOP || absDy > TAP_SLOP) {
+      if (!this.longPressTriggered) {
+        this.clearLongPressTimer()
+      }
+    }
+
+    if (this.pointerHandled) {
+      if (this.softDropEngaged) {
+        const additionalOffset = dy - this.lastSoftDropOffset
+        if (additionalOffset >= SWIPE_THRESHOLD) {
+          this.lastSoftDropOffset = dy
+          this.loop.softDropStep()
+        }
+      }
+      return
+    }
+
+    if (absDx >= SWIPE_THRESHOLD && absDx > absDy) {
+      this.pointerHandled = true
+      this.clearLongPressTimer()
+      if (dx < 0) {
+        this.loop.moveLeft()
+      } else {
+        this.loop.moveRight()
+      }
+      return
+    }
+
+    if (dy >= SWIPE_THRESHOLD && absDy > absDx) {
+      this.pointerHandled = true
+      this.clearLongPressTimer()
+      this.beginSoftDrop(dy)
+      return
+    }
+  }
+
+  private readonly handlePointerUp = (event: PointerEvent) => {
+    this.finishPointerInteraction(event, false)
+  }
+
+  private readonly handlePointerCancel = (event: PointerEvent) => {
+    this.finishPointerInteraction(event, true)
+  }
+
+  private finishPointerInteraction(event: PointerEvent, cancelled: boolean) {
+    if (event.pointerId !== this.activePointerId) return
+
+    if (this.playfieldCanvas.hasPointerCapture(event.pointerId)) {
+      this.playfieldCanvas.releasePointerCapture(event.pointerId)
+    }
+
+    if (this.softDropEngaged) {
+      this.loop.setSoftDrop(false)
+      this.softDropEngaged = false
+      this.lastSoftDropOffset = 0
+    }
+
+    const handled = this.pointerHandled
+    const longPressTriggered = this.longPressTriggered
+    const startX = this.pointerStartX
+    const startY = this.pointerStartY
+    const startTime = this.pointerStartTime
+
+    this.clearLongPressTimer()
+
+    if (!cancelled && this.hasStarted) {
+      const state = this.currentState
+      if (!state || (!state.isPaused && !state.isGameOver)) {
+        const dx = event.clientX - startX
+        const dy = event.clientY - startY
+        const absDx = Math.abs(dx)
+        const absDy = Math.abs(dy)
+        const duration = performance.now() - startTime
+
+        if (!handled && !longPressTriggered) {
+          if (absDx >= SWIPE_THRESHOLD && absDx > absDy) {
+            if (dx < 0) {
+              this.loop.moveLeft()
+            } else {
+              this.loop.moveRight()
+            }
+          } else if (dy >= SWIPE_THRESHOLD && absDy > absDx) {
+            this.loop.setSoftDrop(true)
+            this.loop.softDropStep()
+            this.loop.setSoftDrop(false)
+          } else if (duration < LONG_PRESS_DURATION_MS && absDx <= TAP_SLOP && absDy <= TAP_SLOP) {
+            this.loop.rotateClockwise()
+          }
+        }
+      }
+    }
+
+    this.resetPointerState()
+  }
+
+  private beginSoftDrop(offsetY: number) {
+    if (!this.softDropEngaged) {
+      this.softDropEngaged = true
+      this.loop.setSoftDrop(true)
+    }
+    this.lastSoftDropOffset = offsetY
+    this.loop.softDropStep()
+  }
+
+  private clearLongPressTimer() {
+    if (this.longPressTimeoutId !== null) {
+      window.clearTimeout(this.longPressTimeoutId)
+      this.longPressTimeoutId = null
+    }
+  }
+
+  private resetPointerState() {
+    this.activePointerId = null
+    this.pointerHandled = false
+    this.softDropEngaged = false
+    this.lastSoftDropOffset = 0
+    this.longPressTriggered = false
+    this.longPressTimeoutId = null
+    this.pointerStartX = 0
+    this.pointerStartY = 0
+    this.pointerStartTime = 0
   }
 
   private renderPlayfield(state: GameViewState) {
