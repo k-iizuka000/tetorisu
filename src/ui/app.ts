@@ -38,6 +38,7 @@ export class GameApp {
   private readonly controlButtons: HTMLButtonElement[]
   private readonly scoreElement: HTMLElement
   private currentState: GameViewState | null = null
+  private hasStarted = false
 
   constructor(options: AppOptions) {
     const playfieldCtx = options.playfieldCanvas.getContext('2d')
@@ -64,11 +65,14 @@ export class GameApp {
   }
 
   start() {
+    if (this.hasStarted) return
+    this.hasStarted = true
     this.pauseButton.textContent = 'Pause'
     this.loop.start()
   }
 
   togglePause() {
+    if (!this.hasStarted) return
     if (this.currentState?.isGameOver) {
       this.game.reset()
       const state = this.game.getState()
@@ -121,6 +125,7 @@ export class GameApp {
 
   private readonly handlePointerDown = (event: PointerEvent) => {
     const target = event.currentTarget as HTMLButtonElement
+    if (!this.hasStarted) return
     target.setAttribute('data-active', 'true')
     const action = target.dataset.action as ControlAction | undefined
     if (!action) return
@@ -129,6 +134,7 @@ export class GameApp {
 
   private readonly handlePointerUp = (event: PointerEvent) => {
     const target = event.currentTarget as HTMLButtonElement
+    if (!this.hasStarted) return
     target.removeAttribute('data-active')
     const action = target.dataset.action as ControlAction | undefined
     if (!action) return
@@ -136,6 +142,7 @@ export class GameApp {
   }
 
   private dispatchControl(action: ControlAction, pressed: boolean) {
+    if (!this.hasStarted) return
     switch (action) {
       case 'move-left':
         if (pressed) this.loop.moveLeft()
@@ -163,6 +170,13 @@ export class GameApp {
   private readonly handleKeyDown = (event: KeyboardEvent) => {
     if (event.repeat) return
 
+    if (!this.hasStarted) {
+      if (event.key === ' ') {
+        event.preventDefault()
+      }
+      return
+    }
+
     switch (event.key) {
       case 'ArrowLeft':
         this.loop.moveLeft()
@@ -188,6 +202,7 @@ export class GameApp {
   }
 
   private readonly handleKeyUp = (event: KeyboardEvent) => {
+    if (!this.hasStarted) return
     if (event.key === 'ArrowDown') {
       this.loop.setSoftDrop(false)
     }
