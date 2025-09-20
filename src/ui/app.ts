@@ -24,7 +24,7 @@ export interface AppOptions {
   playfieldCanvas: HTMLCanvasElement
   nextCanvas: HTMLCanvasElement
   pauseButton: HTMLButtonElement
-  controlButtons: HTMLButtonElement[]
+  controlButtons?: Iterable<HTMLButtonElement>
 }
 
 type ControlAction = 'move-left' | 'move-right' | 'soft-drop' | 'rotate-right'
@@ -55,7 +55,7 @@ export class GameApp {
     this.playfieldCtx = playfieldCtx
     this.nextCtx = nextCtx
     this.pauseButton = options.pauseButton
-    this.controlButtons = options.controlButtons
+    this.controlButtons = options.controlButtons ? Array.from(options.controlButtons) : []
     this.scoreElement = document.getElementById('score-value') ?? this.pauseButton
     this.loop = new GameLoop(this.game, (result) => this.handleFrame(result))
 
@@ -115,6 +115,9 @@ export class GameApp {
   }
 
   private bindControlButtons() {
+    if (this.controlButtons.length === 0) {
+      return
+    }
     for (const button of this.controlButtons) {
       button.addEventListener('pointerdown', this.handlePointerDown)
       button.addEventListener('pointerup', this.handlePointerUp)

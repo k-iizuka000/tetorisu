@@ -7,7 +7,7 @@
   </head>
   <body>
     <div id="app">
-      <header class="app-header" aria-label="ゲームの導入">
+      <header id="start-screen" class="app-header" aria-label="ゲームの導入">
         <h1 class="app-title">Tetorisu Party!</h1>
         <button
           id="start-button"
@@ -18,7 +18,14 @@
           ゲームスタート
         </button>
       </header>
-      <main class="layout" role="application">
+      <main
+        id="game-screen"
+        class="layout"
+        role="application"
+        aria-hidden="true"
+        inert
+        hidden
+      >
         <section class="playfield" aria-label="ゲームフィールド">
           <canvas id="playfield" width="360" height="720" aria-label="テトリスの盤面"></canvas>
         </section>
@@ -33,14 +40,6 @@
               <span id="score-value" class="value">0</span>
             </div>
             <button id="pause-toggle" type="button" class="pause-button">Pause</button>
-          </section>
-          <section class="mobile-controls" aria-label="モバイル操作">
-            <div class="controls-grid">
-              <button type="button" data-action="move-left" class="control-button">←</button>
-              <button type="button" data-action="soft-drop" class="control-button">↓</button>
-              <button type="button" data-action="move-right" class="control-button">→</button>
-              <button type="button" data-action="rotate-right" class="control-button control-button--rotate">↻</button>
-            </div>
           </section>
         </aside>
       </main>
