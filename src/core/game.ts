@@ -13,6 +13,9 @@ import type {
 } from './types'
 import { createActivePiece, movePiece, rotatePiece } from './piece'
 
+const SOFT_DROP_REWARD_INTERVAL = 0.5
+const SOFT_DROP_REWARD_POINTS = 50
+
 export interface GameViewState {
   board: readonly (readonly (CellState | null)[])[]
   activePiece: ActivePiece | null
@@ -45,6 +48,7 @@ export class Game {
   private isGameOver = false
   private softDropActive = false
   private fallAccumulator = 0
+  private softDropScoreAccumulator = 0
   private lockTimerMs: number | null = null
   private pendingEvents: GameEvent[] = []
 
@@ -66,6 +70,7 @@ export class Game {
     this.isGameOver = false
     this.softDropActive = false
     this.fallAccumulator = 0
+    this.softDropScoreAccumulator = 0
     this.lockTimerMs = null
     this.pendingEvents = []
     this.ensureQueue(this.previewCount + 1)
@@ -74,6 +79,7 @@ export class Game {
 
   tick(deltaSeconds: number): GameTickResult {
     if (!this.isPaused && !this.isGameOver) {
+      this.updateSoftDropBonus(deltaSeconds)
       this.advanceGravity(deltaSeconds)
       this.processLockDelay(deltaSeconds)
     }
@@ -89,6 +95,9 @@ export class Game {
 
   setSoftDrop(active: boolean) {
     this.softDropActive = active
+    if (!active) {
+      this.softDropScoreAccumulator = 0
+    }
   }
 
   moveHorizontal(direction: -1 | 1): boolean {
@@ -277,6 +286,20 @@ export class Game {
   private ensureQueue(targetLength: number) {
     while (this.nextQueue.length < targetLength) {
       this.nextQueue.push(this.randomizer.next())
+    }
+  }
+
+  private updateSoftDropBonus(deltaSeconds: number) {
+    if (!this.softDropActive || !this.activePiece) {
+      this.softDropScoreAccumulator = 0
+      return
+    }
+
+    this.softDropScoreAccumulator += deltaSeconds
+
+    while (this.softDropScoreAccumulator >= SOFT_DROP_REWARD_INTERVAL) {
+      this.scoring.addSoftDropPoints(SOFT_DROP_REWARD_POINTS)
+      this.softDropScoreAccumulator -= SOFT_DROP_REWARD_INTERVAL
     }
   }
 

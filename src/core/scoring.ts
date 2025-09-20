@@ -25,6 +25,11 @@ export class Scoring {
     }
   }
 
+  addSoftDropPoints(points: number) {
+    if (points <= 0) return
+    this.score += points
+  }
+
   snapshot(): GameStatsSnapshot {
     return {
       score: this.score,
