@@ -21,13 +21,7 @@ body {
   background: radial-gradient(circle at 50% 20%, #14161a, #050607 70%);
 }
 
-#app {
-  width: min(100%, 960px);
-  display: flex;
-  flex-direction: column;
-}
-
-.app-header {
+.start-screen {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -38,6 +32,13 @@ body {
   background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), rgba(13, 16, 22, 0.75));
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
   text-align: center;
+}
+
+#app {
+  width: min(100%, 960px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .app-title {
@@ -137,8 +138,7 @@ body {
 }
 
 .next,
-.hud,
-.mobile-controls {
+.hud {
   padding: 12px;
   border-radius: 14px;
   background: rgba(18, 22, 30, 0.85);
@@ -204,45 +204,6 @@ body {
   transform: translateY(1px);
 }
 
-.mobile-controls {
-  display: flex;
-  justify-content: center;
-}
-
-.controls-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  width: 100%;
-  max-width: 220px;
-}
-
-.control-button {
-  height: 64px;
-  border: none;
-  border-radius: 12px;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #0c1117;
-  background: linear-gradient(145deg, #9de3ff, #59c4ff);
-  cursor: pointer;
-}
-
-.control-button:active {
-  transform: translateY(1px);
-}
-
-.control-button[data-active='true'] {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
-}
-
-.control-button--rotate {
-  grid-column: span 2;
-  height: 72px;
-  font-size: 1.4rem;
-  background: linear-gradient(145deg, #ffd29d, #ffad59);
-}
-
 @media (min-width: 768px) {
   body {
     padding: 32px;
@@ -251,23 +212,10 @@ body {
   .layout {
     grid-template-columns: minmax(280px, 360px) minmax(180px, 240px);
   }
-
-  .sidebar {
-    grid-template-rows: auto auto 1fr;
-  }
-
-  .mobile-controls {
-    align-self: end;
-  }
 }
 
 @media (max-width: 480px) {
   #app {
     width: 100%;
-  }
-
-  .controls-grid {
-    max-width: 100%;
-    grid-template-columns: repeat(2, 1fr);
   }
 }

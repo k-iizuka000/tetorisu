@@ -24,10 +24,7 @@ export interface AppOptions {
   playfieldCanvas: HTMLCanvasElement
   nextCanvas: HTMLCanvasElement
   pauseButton: HTMLButtonElement
-  controlButtons: HTMLButtonElement[]
 }
-
-type ControlAction = 'move-left' | 'move-right' | 'soft-drop' | 'rotate-right'
 
 export class GameApp {
   private readonly game = new Game()
@@ -35,7 +32,6 @@ export class GameApp {
   private readonly playfieldCtx: CanvasRenderingContext2D
   private readonly nextCtx: CanvasRenderingContext2D
   private readonly pauseButton: HTMLButtonElement
-  private readonly controlButtons: HTMLButtonElement[]
   private readonly scoreElement: HTMLElement
   private currentState: GameViewState | null = null
   private hasStarted = false
@@ -55,12 +51,10 @@ export class GameApp {
     this.playfieldCtx = playfieldCtx
     this.nextCtx = nextCtx
     this.pauseButton = options.pauseButton
-    this.controlButtons = options.controlButtons
     this.scoreElement = document.getElementById('score-value') ?? this.pauseButton
     this.loop = new GameLoop(this.game, (result) => this.handleFrame(result))
 
     this.bindPauseButton()
-    this.bindControlButtons()
     this.bindKeyboard()
   }
 
@@ -89,12 +83,6 @@ export class GameApp {
   dispose() {
     this.loop.stop()
     this.pauseButton.removeEventListener('click', this.handlePauseClick)
-    for (const button of this.controlButtons) {
-      button.removeEventListener('pointerdown', this.handlePointerDown)
-      button.removeEventListener('pointerup', this.handlePointerUp)
-      button.removeEventListener('pointerleave', this.handlePointerUp)
-      button.removeEventListener('pointercancel', this.handlePointerUp)
-    }
     window.removeEventListener('keydown', this.handleKeyDown)
     window.removeEventListener('keyup', this.handleKeyUp)
   }
@@ -112,54 +100,6 @@ export class GameApp {
 
   private readonly handlePauseClick = () => {
     this.togglePause()
-  }
-
-  private bindControlButtons() {
-    for (const button of this.controlButtons) {
-      button.addEventListener('pointerdown', this.handlePointerDown)
-      button.addEventListener('pointerup', this.handlePointerUp)
-      button.addEventListener('pointerleave', this.handlePointerUp)
-      button.addEventListener('pointercancel', this.handlePointerUp)
-    }
-  }
-
-  private readonly handlePointerDown = (event: PointerEvent) => {
-    const target = event.currentTarget as HTMLButtonElement
-    if (!this.hasStarted) return
-    target.setAttribute('data-active', 'true')
-    const action = target.dataset.action as ControlAction | undefined
-    if (!action) return
-    this.dispatchControl(action, true)
-  }
-
-  private readonly handlePointerUp = (event: PointerEvent) => {
-    const target = event.currentTarget as HTMLButtonElement
-    if (!this.hasStarted) return
-    target.removeAttribute('data-active')
-    const action = target.dataset.action as ControlAction | undefined
-    if (!action) return
-    this.dispatchControl(action, false)
-  }
-
-  private dispatchControl(action: ControlAction, pressed: boolean) {
-    if (!this.hasStarted) return
-    switch (action) {
-      case 'move-left':
-        if (pressed) this.loop.moveLeft()
-        break
-      case 'move-right':
-        if (pressed) this.loop.moveRight()
-        break
-      case 'soft-drop':
-        this.loop.setSoftDrop(pressed)
-        if (pressed) {
-          this.loop.softDropStep()
-        }
-        break
-      case 'rotate-right':
-        if (pressed) this.loop.rotateClockwise()
-        break
-    }
   }
 
   private bindKeyboard() {
