@@ -12,6 +12,9 @@ function query<T extends HTMLElement>(selector: string): T {
 const playfieldCanvas = query<HTMLCanvasElement>('#playfield')
 const nextCanvas = query<HTMLCanvasElement>('#next-preview')
 const pauseButton = query<HTMLButtonElement>('#pause-toggle')
+const controlButtons = Array.from(
+  document.querySelectorAll<HTMLButtonElement>('[data-action]'),
+)
 const startButton = query<HTMLButtonElement>('#start-button')
 const startScreen = query<HTMLElement>('#start-screen')
 const gameScreen = query<HTMLElement>('#game-screen')
@@ -43,6 +46,7 @@ const app = new GameApp({
   playfieldCanvas,
   nextCanvas,
   pauseButton,
+  controlButtons,
 })
 
 let hasStarted = false
@@ -50,6 +54,9 @@ let hasStarted = false
 startButton.addEventListener('click', () => {
   if (hasStarted) return
   hasStarted = true
+  startButton.disabled = true
+  startButton.dataset.started = 'true'
+  startButton.textContent = 'プレイ中！'
   pauseButton.disabled = false
   showGameScreen()
   pauseButton.focus()
