@@ -24,7 +24,6 @@ const GRID_COLOR = 'rgba(255, 255, 255, 0.08)'
 const SWIPE_THRESHOLD = 24
 const TAP_SLOP = 10
 const LONG_PRESS_DURATION_MS = 350
-const DOUBLE_TAP_MAX_DELAY_MS = 280
 
 export interface AppOptions {
   playfieldCanvas: HTMLCanvasElement
@@ -50,9 +49,6 @@ export class GameApp {
   private pointerHandled = false
   private longPressTimeoutId: number | null = null
   private longPressTriggered = false
-  private lastTapTime = 0
-  private lastTapX = 0
-  private lastTapY = 0
 
   constructor(options: AppOptions) {
     this.playfieldCanvas = options.playfieldCanvas
@@ -315,21 +311,7 @@ export class GameApp {
           absDy <= TAP_SLOP
 
         if (isTap) {
-          const now = performance.now()
-          const isDoubleTap =
-            now - this.lastTapTime <= DOUBLE_TAP_MAX_DELAY_MS &&
-            Math.abs(event.clientX - this.lastTapX) <= TAP_SLOP &&
-            Math.abs(event.clientY - this.lastTapY) <= TAP_SLOP
-
-          if (isDoubleTap) {
-            this.loop.hardDrop()
-            this.lastTapTime = 0
-          } else {
-            this.loop.rotateClockwise()
-            this.lastTapTime = now
-            this.lastTapX = event.clientX
-            this.lastTapY = event.clientY
-          }
+          this.loop.rotateClockwise()
         } else if (!handled && !longPressTriggered) {
           if (absDx >= SWIPE_THRESHOLD && absDx > absDy) {
             if (dx < 0) {
@@ -340,15 +322,9 @@ export class GameApp {
           } else if (dy >= SWIPE_THRESHOLD && absDy > absDx) {
             this.loop.hardDrop()
           }
-          this.lastTapTime = 0
-        } else {
-          this.lastTapTime = 0
         }
       }
-    } else {
-      this.lastTapTime = 0
     }
-
     this.resetPointerState()
   }
 
