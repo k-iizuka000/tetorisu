@@ -46,11 +46,15 @@ body {
 
 #app {
   position: relative;
+  --mobile-bottom-offset: 0px;
   width: min(100%, 960px);
-  min-height: calc(100vh - 2 * var(--page-padding-block, 0px));
-  max-height: calc(100dvh - 2 * var(--page-padding-block, 0px));
-  height: calc(100vh - 2 * var(--page-padding-block, 0px));
-  height: calc(100svh - 2 * var(--page-padding-block, 0px));
+  min-height:
+    calc(100vh - 2 * var(--page-padding-block, 0px) - var(--mobile-bottom-offset, 0px));
+  max-height:
+    calc(100dvh - 2 * var(--page-padding-block, 0px) - var(--mobile-bottom-offset, 0px));
+  height: calc(100vh - 2 * var(--page-padding-block, 0px) - var(--mobile-bottom-offset, 0px));
+  height: calc(100svh - 2 * var(--page-padding-block, 0px) - var(--mobile-bottom-offset, 0px));
+  height: calc(100dvh - 2 * var(--page-padding-block, 0px) - var(--mobile-bottom-offset, 0px));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -362,7 +366,7 @@ body {
 @media (max-width: 768px) {
   body {
     justify-content: flex-start;
-    align-items: stretch;
+    align-items: flex-start;
   }
 
   #app {
@@ -389,6 +393,12 @@ body {
 
   .pause-button {
     width: 100%;
+  }
+}
+
+@media (pointer: coarse) and (max-width: 768px) {
+  #app[data-screen='playing'] {
+    --mobile-bottom-offset: clamp(48px, 10vh, 72px);
   }
 }
 
