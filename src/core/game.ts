@@ -15,6 +15,7 @@ import { createActivePiece, movePiece, rotatePiece } from './piece'
 
 const SOFT_DROP_REWARD_INTERVAL = 0.5
 const SOFT_DROP_REWARD_POINTS = 50
+const HARD_DROP_REWARD_POINTS = 100
 
 export interface GameViewState {
   board: readonly (readonly (CellState | null)[])[]
@@ -134,6 +135,9 @@ export class Game {
     let dropped = 0
     while (this.tryMove({ x: 0, y: 1 }, { resetAccumulator: true })) {
       dropped += 1
+    }
+    if (dropped > 0) {
+      this.scoring.addHardDropPoints(HARD_DROP_REWARD_POINTS)
     }
     this.beginLockDelay(true)
     return dropped

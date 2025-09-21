@@ -30,6 +30,11 @@ export class Scoring {
     this.score += points
   }
 
+  addHardDropPoints(points: number) {
+    if (points <= 0) return
+    this.score += points
+  }
+
   snapshot(): GameStatsSnapshot {
     return {
       score: this.score,

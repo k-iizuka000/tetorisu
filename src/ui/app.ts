@@ -48,8 +48,6 @@ export class GameApp {
   private pointerStartY = 0
   private pointerStartTime = 0
   private pointerHandled = false
-  private softDropEngaged = false
-  private lastSoftDropOffset = 0
   private longPressTimeoutId: number | null = null
   private longPressTriggered = false
   private lastTapTime = 0
@@ -194,8 +192,7 @@ export class GameApp {
         this.loop.moveRight()
         break
       case 'ArrowDown':
-        this.loop.setSoftDrop(true)
-        this.loop.softDropStep()
+        this.loop.hardDrop()
         break
       case ' ':
         this.loop.rotateClockwise()
@@ -208,8 +205,6 @@ export class GameApp {
   private readonly handleKeyUp = (event: KeyboardEvent) => {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      if (!this.hasStarted) return
-      this.loop.setSoftDrop(false)
     }
   }
 
@@ -227,8 +222,6 @@ export class GameApp {
     this.pointerStartY = event.clientY
     this.pointerStartTime = performance.now()
     this.pointerHandled = false
-    this.softDropEngaged = false
-    this.lastSoftDropOffset = 0
     this.longPressTriggered = false
     this.clearLongPressTimer()
     this.longPressTimeoutId = window.setTimeout(() => {
@@ -259,13 +252,6 @@ export class GameApp {
     }
 
     if (this.pointerHandled) {
-      if (this.softDropEngaged) {
-        const additionalOffset = dy - this.lastSoftDropOffset
-        if (additionalOffset >= SWIPE_THRESHOLD) {
-          this.lastSoftDropOffset = dy
-          this.loop.softDropStep()
-        }
-      }
       return
     }
 
@@ -283,7 +269,7 @@ export class GameApp {
     if (dy >= SWIPE_THRESHOLD && absDy > absDx) {
       this.pointerHandled = true
       this.clearLongPressTimer()
-      this.beginSoftDrop(dy)
+      this.loop.hardDrop()
       return
     }
   }
@@ -303,12 +289,6 @@ export class GameApp {
 
     if (this.playfieldCanvas.hasPointerCapture(event.pointerId)) {
       this.playfieldCanvas.releasePointerCapture(event.pointerId)
-    }
-
-    if (this.softDropEngaged) {
-      this.loop.setSoftDrop(false)
-      this.softDropEngaged = false
-      this.lastSoftDropOffset = 0
     }
 
     const handled = this.pointerHandled
@@ -358,9 +338,7 @@ export class GameApp {
               this.loop.moveRight()
             }
           } else if (dy >= SWIPE_THRESHOLD && absDy > absDx) {
-            this.loop.setSoftDrop(true)
-            this.loop.softDropStep()
-            this.loop.setSoftDrop(false)
+            this.loop.hardDrop()
           }
           this.lastTapTime = 0
         } else {
@@ -374,15 +352,6 @@ export class GameApp {
     this.resetPointerState()
   }
 
-  private beginSoftDrop(offsetY: number) {
-    if (!this.softDropEngaged) {
-      this.softDropEngaged = true
-      this.loop.setSoftDrop(true)
-    }
-    this.lastSoftDropOffset = offsetY
-    this.loop.softDropStep()
-  }
-
   private clearLongPressTimer() {
     if (this.longPressTimeoutId !== null) {
       window.clearTimeout(this.longPressTimeoutId)
@@ -393,8 +362,6 @@ export class GameApp {
   private resetPointerState() {
     this.activePointerId = null
     this.pointerHandled = false
-    this.softDropEngaged = false
-    this.lastSoftDropOffset = 0
     this.longPressTriggered = false
     this.longPressTimeoutId = null
     this.pointerStartX = 0
