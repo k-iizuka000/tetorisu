@@ -51,6 +51,10 @@ export class GameLoop {
     this.game.rotate('clockwise')
   }
 
+  rotateCounterClockwise() {
+    this.game.rotate('counterclockwise')
+  }
+
   softDropStep() {
     this.game.softDropStep()
   }
