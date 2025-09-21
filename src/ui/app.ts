@@ -4,9 +4,10 @@ import {
   BOARD_HIDDEN_ROWS,
   BOARD_VISIBLE_HEIGHT,
   BOARD_WIDTH,
+  BOARD_TOTAL_HEIGHT,
   TETROMINO_SHAPES,
 } from '../core/constants'
-import type { PieceType } from '../core/types'
+import type { ActivePiece, PieceType } from '../core/types'
 
 const PIECE_COLORS: Record<PieceType, string> = {
   I: '#00f0f0',
@@ -23,6 +24,7 @@ const GRID_COLOR = 'rgba(255, 255, 255, 0.08)'
 const SWIPE_THRESHOLD = 24
 const TAP_SLOP = 10
 const LONG_PRESS_DURATION_MS = 350
+const DOUBLE_TAP_MAX_DELAY_MS = 280
 
 export interface AppOptions {
   playfieldCanvas: HTMLCanvasElement
@@ -40,6 +42,7 @@ export class GameApp {
   private readonly scoreElement: HTMLElement
   private currentState: GameViewState | null = null
   private hasStarted = false
+  private readonly isTouchDevice: boolean
   private activePointerId: number | null = null
   private pointerStartX = 0
   private pointerStartY = 0
@@ -49,6 +52,9 @@ export class GameApp {
   private lastSoftDropOffset = 0
   private longPressTimeoutId: number | null = null
   private longPressTriggered = false
+  private lastTapTime = 0
+  private lastTapX = 0
+  private lastTapY = 0
 
   constructor(options: AppOptions) {
     this.playfieldCanvas = options.playfieldCanvas
@@ -68,10 +74,27 @@ export class GameApp {
     this.pauseButton = options.pauseButton
     this.scoreElement = document.getElementById('score-value') ?? this.pauseButton
     this.loop = new GameLoop(this.game, (result) => this.handleFrame(result))
+    this.isTouchDevice = GameApp.detectTouchDevice()
 
     this.bindPauseButton()
     this.bindKeyboard()
-    this.bindTouchControls()
+    if (this.isTouchDevice) {
+      this.bindTouchGestures()
+    }
+  }
+
+  private static detectTouchDevice(): boolean {
+    if (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0) {
+      return true
+    }
+
+    try {
+      return typeof window !== 'undefined'
+        ? window.matchMedia('(pointer: coarse)').matches
+        : false
+    } catch (error) {
+      return false
+    }
   }
 
   start() {
@@ -101,11 +124,9 @@ export class GameApp {
     this.pauseButton.removeEventListener('click', this.handlePauseClick)
     window.removeEventListener('keydown', this.handleKeyDown)
     window.removeEventListener('keyup', this.handleKeyUp)
-    this.playfieldCanvas.removeEventListener('pointerdown', this.handlePointerDown)
-    this.playfieldCanvas.removeEventListener('pointermove', this.handlePointerMove)
-    this.playfieldCanvas.removeEventListener('pointerup', this.handlePointerUp)
-    this.playfieldCanvas.removeEventListener('pointercancel', this.handlePointerCancel)
-    this.playfieldCanvas.removeEventListener('pointerleave', this.handlePointerCancel)
+    if (this.isTouchDevice) {
+      this.unbindTouchGestures()
+    }
     this.clearLongPressTimer()
   }
 
@@ -129,7 +150,7 @@ export class GameApp {
     window.addEventListener('keyup', this.handleKeyUp)
   }
 
-  private bindTouchControls() {
+  private bindTouchGestures() {
     const canvas = this.playfieldCanvas
     canvas.addEventListener('pointerdown', this.handlePointerDown)
     canvas.addEventListener('pointermove', this.handlePointerMove)
@@ -138,13 +159,30 @@ export class GameApp {
     canvas.addEventListener('pointerleave', this.handlePointerCancel)
   }
 
+  private unbindTouchGestures() {
+    const canvas = this.playfieldCanvas
+    canvas.removeEventListener('pointerdown', this.handlePointerDown)
+    canvas.removeEventListener('pointermove', this.handlePointerMove)
+    canvas.removeEventListener('pointerup', this.handlePointerUp)
+    canvas.removeEventListener('pointercancel', this.handlePointerCancel)
+    canvas.removeEventListener('pointerleave', this.handlePointerCancel)
+  }
+
   private readonly handleKeyDown = (event: KeyboardEvent) => {
     if (event.repeat) return
 
-    if (!this.hasStarted) {
-      if (event.key === ' ') {
+    switch (event.key) {
+      case 'ArrowLeft':
+      case 'ArrowRight':
+      case 'ArrowDown':
+      case ' ':
         event.preventDefault()
-      }
+        break
+      default:
+        return
+    }
+
+    if (!this.canAcceptGameplayInput()) {
       return
     }
 
@@ -160,12 +198,7 @@ export class GameApp {
         this.loop.softDropStep()
         break
       case ' ':
-        event.preventDefault()
         this.loop.rotateClockwise()
-        break
-      case 'p':
-      case 'P':
-        this.togglePause()
         break
       default:
         break
@@ -173,18 +206,20 @@ export class GameApp {
   }
 
   private readonly handleKeyUp = (event: KeyboardEvent) => {
-    if (!this.hasStarted) return
     if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      if (!this.hasStarted) return
       this.loop.setSoftDrop(false)
     }
   }
 
   private readonly handlePointerDown = (event: PointerEvent) => {
     if (!event.isPrimary) return
-    if (!this.hasStarted) return
+    if (!this.isTouchDevice) return
+    if (event.pointerType === 'mouse') return
+    if (!this.canAcceptGameplayInput()) return
 
-    const state = this.currentState
-    if (state?.isPaused || state?.isGameOver) return
+    event.preventDefault()
 
     this.playfieldCanvas.setPointerCapture(event.pointerId)
     this.activePointerId = event.pointerId
@@ -208,10 +243,9 @@ export class GameApp {
 
   private readonly handlePointerMove = (event: PointerEvent) => {
     if (event.pointerId !== this.activePointerId) return
-    if (!this.hasStarted) return
+    if (!this.canAcceptGameplayInput()) return
 
-    const state = this.currentState
-    if (state?.isPaused || state?.isGameOver) return
+    event.preventDefault()
 
     const dx = event.clientX - this.pointerStartX
     const dy = event.clientY - this.pointerStartY
@@ -265,6 +299,8 @@ export class GameApp {
   private finishPointerInteraction(event: PointerEvent, cancelled: boolean) {
     if (event.pointerId !== this.activePointerId) return
 
+    event.preventDefault()
+
     if (this.playfieldCanvas.hasPointerCapture(event.pointerId)) {
       this.playfieldCanvas.releasePointerCapture(event.pointerId)
     }
@@ -291,8 +327,30 @@ export class GameApp {
         const absDx = Math.abs(dx)
         const absDy = Math.abs(dy)
         const duration = performance.now() - startTime
+        const isTap =
+          !handled &&
+          !longPressTriggered &&
+          duration < LONG_PRESS_DURATION_MS &&
+          absDx <= TAP_SLOP &&
+          absDy <= TAP_SLOP
 
-        if (!handled && !longPressTriggered) {
+        if (isTap) {
+          const now = performance.now()
+          const isDoubleTap =
+            now - this.lastTapTime <= DOUBLE_TAP_MAX_DELAY_MS &&
+            Math.abs(event.clientX - this.lastTapX) <= TAP_SLOP &&
+            Math.abs(event.clientY - this.lastTapY) <= TAP_SLOP
+
+          if (isDoubleTap) {
+            this.loop.hardDrop()
+            this.lastTapTime = 0
+          } else {
+            this.loop.rotateClockwise()
+            this.lastTapTime = now
+            this.lastTapX = event.clientX
+            this.lastTapY = event.clientY
+          }
+        } else if (!handled && !longPressTriggered) {
           if (absDx >= SWIPE_THRESHOLD && absDx > absDy) {
             if (dx < 0) {
               this.loop.moveLeft()
@@ -303,11 +361,14 @@ export class GameApp {
             this.loop.setSoftDrop(true)
             this.loop.softDropStep()
             this.loop.setSoftDrop(false)
-          } else if (duration < LONG_PRESS_DURATION_MS && absDx <= TAP_SLOP && absDy <= TAP_SLOP) {
-            this.loop.rotateClockwise()
           }
+          this.lastTapTime = 0
+        } else {
+          this.lastTapTime = 0
         }
       }
+    } else {
+      this.lastTapTime = 0
     }
 
     this.resetPointerState()
@@ -341,6 +402,94 @@ export class GameApp {
     this.pointerStartTime = 0
   }
 
+  private canAcceptGameplayInput() {
+    if (!this.hasStarted) {
+      return false
+    }
+    const state = this.currentState
+    if (!state) {
+      return true
+    }
+    return !state.isPaused && !state.isGameOver
+  }
+
+  private computeGhostDropY(piece: ActivePiece, board: GameViewState['board']): number {
+    let offset = 0
+    while (offset < BOARD_TOTAL_HEIGHT && !this.hasCollisionWithBoard(piece, board, offset + 1)) {
+      offset += 1
+    }
+    return piece.position.y + offset
+  }
+
+  private hasCollisionWithBoard(
+    piece: ActivePiece,
+    board: GameViewState['board'],
+    offsetY: number,
+  ): boolean {
+    for (const block of piece.blocks) {
+      const worldX = piece.position.x + block.x
+      const worldY = piece.position.y + block.y + offsetY
+
+      if (worldX < 0 || worldX >= BOARD_WIDTH) {
+        return true
+      }
+      if (worldY >= BOARD_TOTAL_HEIGHT) {
+        return true
+      }
+
+      if (worldY >= 0) {
+        const row = board[worldY]
+        if (row && row[worldX]) {
+          return true
+        }
+      }
+    }
+
+    return false
+  }
+
+  private drawGhostPiece(
+    ctx: CanvasRenderingContext2D,
+    piece: ActivePiece,
+    ghostY: number,
+    cellWidth: number,
+    cellHeight: number,
+  ) {
+    const color = PIECE_COLORS[piece.type]
+    const padding = 2
+    const lineWidth = Math.max(1, Math.min(cellWidth, cellHeight) * 0.08)
+
+    for (const block of piece.blocks) {
+      const worldX = piece.position.x + block.x
+      const worldY = ghostY + block.y
+      const visibleY = worldY - BOARD_HIDDEN_ROWS
+      if (
+        worldX < 0 ||
+        worldX >= BOARD_WIDTH ||
+        visibleY < 0 ||
+        visibleY >= BOARD_VISIBLE_HEIGHT
+      ) {
+        continue
+      }
+
+      const drawX = worldX * cellWidth + padding
+      const drawY = visibleY * cellHeight + padding
+      const width = cellWidth - padding * 2
+      const height = cellHeight - padding * 2
+
+      ctx.save()
+      ctx.globalAlpha = 0.18
+      ctx.fillStyle = color
+      ctx.fillRect(drawX, drawY, width, height)
+
+      ctx.globalAlpha = 0.5
+      ctx.strokeStyle = color
+      ctx.lineWidth = lineWidth
+      ctx.strokeRect(drawX + lineWidth / 2, drawY + lineWidth / 2, width - lineWidth, height - lineWidth)
+      ctx.restore()
+    }
+  }
+
   private renderPlayfield(state: GameViewState) {
     const ctx = this.playfieldCtx
     const { width, height } = ctx.canvas
@@ -367,6 +516,9 @@ export class GameApp {
     // Render active piece
     const piece = state.activePiece
     if (piece) {
+      const ghostY = this.computeGhostDropY(piece, state.board)
+      this.drawGhostPiece(ctx, piece, ghostY, cellWidth, cellHeight)
+
       piece.blocks.forEach(({ x, y }, index) => {
         const worldX = piece.position.x + x
         const worldY = piece.position.y + y

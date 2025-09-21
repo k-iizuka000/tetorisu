@@ -25,28 +25,39 @@
       </section>
       <main
         id="game-screen"
-        class="layout"
+        class="game-layout"
         role="application"
         aria-hidden="true"
         hidden
+        aria-labelledby="playfield-label"
       >
-        <section class="playfield" aria-label="ゲームフィールド">
+        <section class="playfield" aria-labelledby="playfield-label">
+          <h2 id="playfield-label" class="visually-hidden">ゲームフィールド</h2>
           <canvas id="playfield" width="360" height="720" aria-label="テトリスの盤面"></canvas>
         </section>
-        <aside class="sidebar">
+        <aside class="sidebar" aria-labelledby="sidebar-label">
+          <h2 id="sidebar-label" class="visually-hidden">ステータスパネル</h2>
           <section class="next" aria-labelledby="next-label">
-            <h2 id="next-label" class="section-title">Next</h2>
+            <h3 id="next-label" class="section-title">Next</h3>
             <canvas id="next-preview" width="128" height="256" aria-label="次のミノ"></canvas>
           </section>
-          <section class="hud" aria-label="ステータス">
-            <div class="score">
-              <span class="label">SCORE</span>
-              <span id="score-value" class="value">0</span>
+          <section class="hud" aria-labelledby="score-label">
+            <div class="hud__header">
+              <h3 id="score-label" class="section-title">Score</h3>
+              <button id="pause-toggle" type="button" class="pause-button" aria-label="ポーズを切り替える">
+                Pause
+              </button>
             </div>
-            <button id="pause-toggle" type="button" class="pause-button">Pause</button>
+            <p class="score" aria-live="polite" aria-atomic="true">
+              <span class="score__label">SCORE</span>
+              <span id="score-value" class="score__value">0</span>
+            </p>
           </section>
         </aside>
       </main>
+      <div id="orientation-guard" role="alert">
+        <p>縦向きでプレイしてください</p>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

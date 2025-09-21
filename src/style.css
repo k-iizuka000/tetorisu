@@ -11,14 +11,24 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
+  height: 100%;
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 16px;
+  --page-padding-block: clamp(8px, 2vh, 16px);
+  --page-padding-inline: clamp(12px, 3vw, 24px);
+  padding: var(--page-padding-block) var(--page-padding-inline);
   background: radial-gradient(circle at 50% 20%, #14161a, #050607 70%);
+  touch-action: none;
 }
 
 .start-screen {
@@ -35,10 +45,17 @@ body {
 }
 
 #app {
+  position: relative;
   width: min(100%, 960px);
+  min-height: calc(100vh - 2 * var(--page-padding-block, 0px));
+  max-height: calc(100dvh - 2 * var(--page-padding-block, 0px));
+  height: calc(100vh - 2 * var(--page-padding-block, 0px));
+  height: calc(100svh - 2 * var(--page-padding-block, 0px));
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  justify-content: center;
+  gap: clamp(16px, 2vw, 24px);
+  overflow: hidden;
 }
 
 #app[data-screen='intro'] #game-screen {
@@ -118,25 +135,44 @@ body {
   background: linear-gradient(135deg, #8df8b1, #7df4ff);
 }
 
-.layout {
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.game-layout {
+  flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: 4fr 1fr; /* ≒ 左80% / 右20% */
+  grid-template-areas: 'playfield sidebar';
+  gap: clamp(12px, 2vw, 24px);
+  align-items: stretch;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
 }
 
 .playfield {
+  grid-area: playfield;
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 12px;
+  align-items: stretch; /* 縦方向に可能な限り伸ばす */
+  padding: clamp(12px, 2vw, 20px);
   border-radius: 16px;
-  background: linear-gradient(145deg, rgba(24, 28, 35, 0.75), rgba(7, 8, 9, 0.75));
+  background: linear-gradient(145deg, rgba(24, 28, 35, 0.85), rgba(7, 8, 9, 0.85));
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 .playfield canvas {
-  width: min(100%, 360px);
+  height: 100%;
+  width: auto;
   max-width: 100%;
   aspect-ratio: 10 / 20;
   background: #151b24;
@@ -146,13 +182,25 @@ body {
 }
 
 .sidebar {
+  grid-area: sidebar;
   display: grid;
-  gap: 16px;
+  grid-template-rows: 1fr 1fr; /* 右上: Next / 右下: Score */
+  gap: clamp(12px, 2vw, 24px);
+  min-width: 0; /* 80/20保持のため右カラムの最小幅制約を解除 */
+}
+
+/* Grid items allow shrinking inside viewport (avoid clipping on short windows) */
+.game-layout,
+.playfield,
+.sidebar,
+.next,
+.hud {
+  min-height: 0;
 }
 
 .next,
 .hud {
-  padding: 12px;
+  padding: clamp(12px, 2vw, 18px);
   border-radius: 14px;
   background: rgba(18, 22, 30, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -160,17 +208,22 @@ body {
 }
 
 .section-title {
-  margin: 0 0 8px;
-  font-size: 1rem;
+  margin: 0 0 12px;
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.next {
+  position: relative;
 }
 
 .next canvas {
   display: block;
   width: 100%;
-  max-width: 128px;
+  max-width: 100%;
+  max-height: 100%;
   aspect-ratio: 1 / 2;
   background: #11161f;
   border-radius: 8px;
@@ -179,31 +232,21 @@ body {
 }
 
 .hud {
-  display: grid;
-  gap: 12px;
-  text-align: center;
-}
-
-.score {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(12px, 2vw, 20px);
+}
+
+.hud__header {
+  display: flex;
   align-items: center;
-  gap: 4px;
-}
-
-.score .label {
-  font-size: 0.75rem;
-  letter-spacing: 0.18em;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.score .value {
-  font-size: 1.5rem;
-  font-variant-numeric: tabular-nums;
+  justify-content: space-between;
+  gap: clamp(8px, 2vw, 16px);
 }
 
 .pause-button {
-  padding: 10px 16px;
+  padding: 10px 18px;
   border-radius: 999px;
   border: none;
   font: inherit;
@@ -211,24 +254,255 @@ body {
   background: #d5f365;
   cursor: pointer;
   font-weight: 700;
+  min-width: 96px;
+}
+
+.pause-button:focus-visible {
+  outline: 3px solid rgba(213, 243, 101, 0.5);
+  outline-offset: 2px;
 }
 
 .pause-button:active {
   transform: translateY(1px);
 }
 
-@media (min-width: 768px) {
-  body {
-    padding: 32px;
+.score {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.score__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.score__value {
+  font-size: clamp(1.5rem, 3vw, 2.3rem);
+  font-weight: 700;
+}
+
+#orientation-guard {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 6vw, 48px);
+  background: rgba(7, 8, 9, 0.95);
+  color: #f7f7f7;
+  text-align: center;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+#orientation-guard p {
+  margin: 0;
+  font-size: clamp(1.25rem, 4vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+@media (orientation: landscape) and (pointer: coarse) and (max-width: 900px) {
+  #orientation-guard {
+    display: flex;
+    pointer-events: auto;
   }
 
-  .layout {
-    grid-template-columns: minmax(280px, 360px) minmax(180px, 240px);
+  #game-screen {
+    filter: blur(3px);
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 960px) {
+  body {
+    padding: clamp(24px, 5vw, 48px);
+  }
+}
+
+/* Short-height windows: tighten paddings and font sizes to keep sidebar visible */
+@media (max-height: 700px) {
+  .start-screen {
+    margin-bottom: 12px;
+    padding: 16px 14px;
+  }
+
+  .game-layout {
+    gap: 10px;
+  }
+
+  .playfield {
+    padding: 10px;
+  }
+
+  .next,
+  .hud {
+    padding: 10px;
+  }
+
+  .section-title {
+    font-size: clamp(0.8rem, 1.2vw, 1rem);
+  }
+
+  .score__value {
+    font-size: clamp(1.2rem, 2.2vw, 1.8rem);
+  }
+
+  .pause-button {
+    padding: 8px 12px;
+    min-width: 88px;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    justify-content: flex-start;
+    align-items: stretch;
+  }
+
+  #app {
+    width: 100%;
+  }
+
+  .game-layout {
+    grid-template-columns: 4fr 1fr; /* モバイルでも2カラム維持 */
+    gap: 12px;
+  }
+
+  .playfield {
+    padding: 12px;
+  }
+
+  .sidebar {
+    gap: 12px;
+  }
+
+  .hud__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pause-button {
+    width: 100%;
+  }
+}
+
+/* 600px以下でも2カラム維持（右列50%/50%）と視認性向上 */
+@media (max-width: 600px) {
+  .game-layout {
+    grid-template-columns: 4fr 1fr;
+    gap: 10px;
+  }
+
+  .next {
+    padding: 10px;
+  }
+
+  .next canvas {
+    width: 100%;
+  }
+
+  .hud {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .section-title {
+    font-size: clamp(0.9rem, 3.8vw, 1.2rem);
+  }
+
+  .pause-button {
+    padding: 8px 14px;
+    min-width: 0;
+    font-size: clamp(0.85rem, 3.8vw, 1rem);
+  }
+
+  .score__value {
+    font-size: clamp(1.8rem, 8vw, 2.6rem);
   }
 }
 
 @media (max-width: 480px) {
+  body {
+    padding: 4px 12px;
+  }
+
   #app {
+    gap: 6px;
+  }
+
+  .game-layout {
+    grid-template-columns: 4fr 1fr; /* 2カラム維持 */
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .playfield {
+    padding: 6px;
+  }
+
+  .playfield canvas {
+    min-width: min(220px, 100%);
+  }
+
+  .hud {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'pause'
+      'label'
+      'score';
+    gap: 4px;
+    justify-content: flex-start;
+  }
+
+  .hud__header {
+    display: contents;
+  }
+
+  .hud__header .pause-button {
+    grid-area: pause;
     width: 100%;
+  }
+
+  .hud__header .section-title {
+    grid-area: label;
+    margin: 0;
+  }
+
+  .score {
+    grid-area: score;
+    gap: 2px;
+  }
+
+  .section-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .pause-button {
+    padding: 6px 12px;
+    min-width: 0;
+    font-size: 0.85rem;
+  }
+
+  .score__value {
+    font-size: clamp(1.9rem, 8.5vw, 2.4rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
