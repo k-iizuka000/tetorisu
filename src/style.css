@@ -154,7 +154,7 @@ body {
 .game-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: 4fr 1fr; /* ≒ 左80% / 右20% */
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr); /* ≒ 左80% / 右20% */
   grid-template-areas: 'playfield sidebar';
   gap: clamp(12px, 2vw, 24px);
   align-items: stretch;
@@ -247,6 +247,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: clamp(8px, 2vw, 16px);
+  min-width: 0;
 }
 
 .pause-button {
@@ -259,6 +260,7 @@ body {
   cursor: pointer;
   font-weight: 700;
   min-width: 96px;
+  max-width: 100%;
 }
 
 .pause-button:focus-visible {
@@ -396,12 +398,7 @@ body {
 
   .pause-button {
     width: 100%;
-  }
-}
-
-@media (pointer: coarse) and (max-width: 768px) {
-  #app[data-screen='playing'] {
-    --mobile-bottom-offset: clamp(48px, 10vh, 72px);
+    min-width: 0;
   }
 }
 
