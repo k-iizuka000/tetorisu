@@ -22,7 +22,7 @@ body {
   height: 100%;
   min-height: 100vh;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   --page-padding-block: clamp(8px, 2vh, 16px);
   --page-padding-inline: clamp(12px, 3vw, 24px);
@@ -44,6 +44,14 @@ body {
   text-align: center;
 }
 
+.start-screen,
+.game-layout {
+  --layout-scale: 1;
+  --layout-offset-y: 0px;
+  transform-origin: top center;
+  transform: translateY(var(--layout-offset-y)) scale(var(--layout-scale));
+}
+
 #app {
   position: relative;
   --mobile-bottom-offset: 0px;
@@ -57,7 +65,7 @@ body {
   height: calc(100dvh - 2 * var(--page-padding-block, 0px) - var(--mobile-bottom-offset, 0px));
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: clamp(16px, 2vw, 24px);
   overflow: hidden;
 }

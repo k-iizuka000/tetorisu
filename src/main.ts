@@ -1,5 +1,6 @@
 import './style.css'
 import { GameApp } from './ui/app'
+import { LayoutScaler } from './ui/layout-scaler'
 
 function query<T extends HTMLElement>(selector: string): T {
   const element = document.querySelector(selector)
@@ -30,6 +31,11 @@ const app = new GameApp({
   pauseButton,
 })
 
+const layoutScaler = new LayoutScaler(appRoot, [startScreen, gameScreen], {
+  topOffsetPx: 24,
+  onAfterUpdate: () => app.handleResize(),
+})
+
 let hasStarted = false
 
 startButton.addEventListener('click', () => {
@@ -44,9 +50,13 @@ startButton.addEventListener('click', () => {
   startScreen.setAttribute('aria-hidden', 'true')
   gameScreen.hidden = false
   gameScreen.setAttribute('aria-hidden', 'false')
+  layoutScaler.update()
   app.start()
 })
 
-window.addEventListener('beforeunload', () => {
+const dispose = () => {
   app.dispose()
-})
+  layoutScaler.dispose()
+}
+
+window.addEventListener('beforeunload', dispose)
