@@ -167,8 +167,10 @@ body {
   gap: clamp(12px, 2vw, 24px);
   align-items: stretch;
   width: 100%;
+  max-width: 100%;
   height: 100%;
   touch-action: none;
+  overflow: hidden;
 }
 
 .playfield {
@@ -196,7 +198,7 @@ body {
 .sidebar {
   grid-area: sidebar;
   display: grid;
-  grid-template-rows: 1fr 1fr; /* 右上: Next / 右下: Score */
+  grid-template-rows: auto 1fr; /* NEXTは必要なサイズ、SCOREは残りを使用 */
   gap: clamp(12px, 2vw, 24px);
   min-width: 0; /* 80/20保持のため右カラムの最小幅制約を解除 */
 }
@@ -246,16 +248,26 @@ body {
 .hud {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: clamp(12px, 2vw, 20px);
 }
 
 .hud__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: clamp(8px, 2vw, 16px);
-  min-width: 0;
+  display: contents;
+}
+
+.section-title {
+  order: 1;
+  margin: 0 0 12px;
+}
+
+.score {
+  order: 2;
+}
+
+.pause-button {
+  order: 3;
+  margin-top: auto;
 }
 
 .pause-button {
@@ -290,9 +302,7 @@ body {
 }
 
 .score__label {
-  font-size: 0.75rem;
-  letter-spacing: 0.16em;
-  color: rgba(255, 255, 255, 0.5);
+  display: none; /* セクションタイトルと重複するため非表示 */
 }
 
 .score__value {
@@ -387,67 +397,148 @@ body {
   }
 
   .game-layout {
-    grid-template-columns: 4fr 1fr; /* モバイルでも2カラム維持 */
-    gap: 12px;
+    grid-template-columns: 70% 30%; /* 操作しやすいバランス */
+    gap: 10px;
   }
 
   .playfield {
-    padding: 12px;
+    padding: 8px;
   }
 
   .sidebar {
-    gap: 12px;
-  }
-
-  .hud__header {
-    flex-direction: column;
-    align-items: flex-start;
+    gap: 8px;
+    min-width: 140px; /* 最小幅を確保 */
   }
 
   .pause-button {
     width: 100%;
     min-width: 0;
+    min-height: 44px; /* タッチ操作基準をクリア */
+    font-size: 0.9rem;
+    padding: 8px 12px;
   }
 }
 
-/* 600px以下でも2カラム維持（右列50%/50%）と視認性向上 */
+/* 600px以下でも2カラム維持と視認性向上 */
 @media (max-width: 600px) {
   .game-layout {
-    grid-template-columns: 4fr 1fr;
-    gap: 10px;
+    grid-template-columns: 68% 32%; /* 操作しやすいバランス */
+    gap: 8px;
   }
 
   .next {
-    padding: 10px;
+    padding: 8px;
   }
 
   .next canvas {
     width: 100%;
+    height: auto;
+    max-height: 120px;
   }
 
   .hud {
-    padding: 10px;
-    gap: 10px;
+    padding: 8px;
+    gap: 6px;
   }
 
   .section-title {
-    font-size: clamp(0.9rem, 3.8vw, 1.2rem);
+    font-size: 0.85rem;
   }
 
   .pause-button {
-    padding: 8px 14px;
+    padding: 8px 12px;
     min-width: 0;
-    font-size: clamp(0.85rem, 3.8vw, 1rem);
+    font-size: 0.875rem;
+    min-height: 44px; /* タッチ操作基準をクリア */
   }
 
   .score__value {
-    font-size: clamp(1.8rem, 8vw, 2.6rem);
+    font-size: 1.2rem;
   }
 }
 
 @media (max-width: 480px) {
   body {
-    padding: 4px 12px;
+    padding: 6px 8px;
+  }
+
+  #app {
+    gap: 6px;
+    width: 100vw;
+    max-width: 100vw;
+  }
+
+  .game-layout {
+    grid-template-columns: 65% 35%; /* 操作しやすいバランス */
+    gap: 6px;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .playfield {
+    padding: 6px;
+    min-width: 0;
+  }
+
+  .playfield canvas {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+  }
+
+  .sidebar {
+    min-width: 0;
+    overflow: hidden;
+    grid-template-rows: minmax(120px, auto) 1fr;
+    gap: 8px;
+  }
+
+  .next {
+    padding: 8px;
+  }
+
+  .next canvas {
+    min-height: 90px;
+    max-height: 110px;
+  }
+
+  .hud {
+    padding: 8px;
+    gap: 8px;
+  }
+
+
+  .section-title {
+    font-size: 0.8rem;
+    margin: 0 0 4px 0;
+  }
+
+  .pause-button {
+    padding: 8px 12px;
+    min-width: 0;
+    width: 100%;
+    font-size: 0.875rem;
+    min-height: 44px; /* タッチ操作基準をクリア */
+  }
+
+  .score {
+    gap: 4px;
+  }
+
+  .score__label {
+    font-size: 0.8rem;
+  }
+
+  .score__value {
+    font-size: 1.1rem;
+    min-width: auto;
+  }
+}
+
+/* 375px幅のスマートフォン用の操作しやすい調整 */
+@media (max-width: 375px) {
+  body {
+    padding: 4px 6px;
   }
 
   #app {
@@ -455,63 +546,55 @@ body {
   }
 
   .game-layout {
-    grid-template-columns: 4fr 1fr; /* 2カラム維持 */
-    gap: 8px;
-    align-items: stretch;
+    grid-template-columns: 60% 40%; /* 操作可能なバランス */
+    gap: 6px;
   }
 
   .playfield {
     padding: 6px;
   }
 
-  .playfield canvas {
-    min-width: min(220px, 100%);
+  .sidebar {
+    grid-template-rows: minmax(120px, auto) 1fr;
+    gap: 8px;
+  }
+
+  .next {
+    padding: 8px;
+  }
+
+  .next canvas {
+    min-height: 80px;
+    max-height: 100px;
   }
 
   .hud {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      'pause'
-      'label'
-      'score';
-    gap: 4px;
-    justify-content: flex-start;
-  }
-
-  .hud__header {
-    display: contents;
-  }
-
-  .hud__header .pause-button {
-    grid-area: pause;
-    width: 100%;
-  }
-
-  .hud__header .section-title {
-    grid-area: label;
-    margin: 0;
-  }
-
-  .score {
-    grid-area: score;
-    gap: 2px;
+    padding: 8px;
+    gap: 8px;
   }
 
   .section-title {
-    font-size: 0.7rem;
-    letter-spacing: 0.05em;
-    margin-bottom: 4px;
+    font-size: 0.75rem; /* 読みやすいサイズ */
+    margin: 0 0 6px 0;
   }
 
   .pause-button {
-    padding: 6px 12px;
-    min-width: 0;
-    font-size: 0.85rem;
+    padding: 8px 12px;
+    font-size: 0.875rem; /* 14px相当 */
+    min-height: 44px; /* タッチ操作基準をクリア */
+    width: 100%;
+  }
+
+  .score {
+    gap: 4px;
+  }
+
+  .score__label {
+    font-size: 0.75rem; /* 読みやすいサイズ */
   }
 
   .score__value {
-    font-size: clamp(1.9rem, 8.5vw, 2.4rem);
+    font-size: 1rem; /* 16px相当 */
   }
 }
 
