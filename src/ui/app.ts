@@ -36,6 +36,7 @@ export class GameApp {
   private readonly loop: GameLoop
   private readonly playfieldCanvas: HTMLCanvasElement
   private readonly playfieldCtx: CanvasRenderingContext2D
+  private readonly nextCanvas: HTMLCanvasElement
   private readonly nextCtx: CanvasRenderingContext2D
   private readonly pauseButton: HTMLButtonElement
   private readonly scoreElement: HTMLElement
@@ -49,9 +50,11 @@ export class GameApp {
   private pointerHandled = false
   private longPressTimeoutId: number | null = null
   private longPressTriggered = false
+  private readonly resizeObserver: ResizeObserver | null
 
   constructor(options: AppOptions) {
     this.playfieldCanvas = options.playfieldCanvas
+    this.nextCanvas = options.nextCanvas
     const playfieldCtx = options.playfieldCanvas.getContext('2d')
     const nextCtx = options.nextCanvas.getContext('2d')
 
@@ -69,12 +72,24 @@ export class GameApp {
     this.scoreElement = document.getElementById('score-value') ?? this.pauseButton
     this.loop = new GameLoop(this.game, (result) => this.handleFrame(result))
     this.isTouchDevice = GameApp.detectTouchDevice()
+    this.resizeObserver =
+      typeof ResizeObserver !== 'undefined'
+        ? new ResizeObserver(() => this.updateCanvasSize())
+        : null
 
     this.bindPauseButton()
     this.bindKeyboard()
     if (this.isTouchDevice) {
       this.bindTouchGestures()
     }
+
+    if (this.resizeObserver) {
+      this.resizeObserver.observe(this.playfieldCanvas)
+      this.resizeObserver.observe(this.nextCanvas)
+    }
+
+    window.addEventListener('resize', this.handleWindowResize)
+    this.updateCanvasSize()
   }
 
   private static detectTouchDevice(): boolean {
@@ -118,10 +133,16 @@ export class GameApp {
     this.pauseButton.removeEventListener('click', this.handlePauseClick)
     window.removeEventListener('keydown', this.handleKeyDown)
     window.removeEventListener('keyup', this.handleKeyUp)
+    window.removeEventListener('resize', this.handleWindowResize)
     if (this.isTouchDevice) {
       this.unbindTouchGestures()
     }
     this.clearLongPressTimer()
+    this.resizeObserver?.disconnect()
+  }
+
+  handleResize() {
+    this.updateCanvasSize()
   }
 
   private handleFrame(result: GameTickResult) {
@@ -343,6 +364,38 @@ export class GameApp {
     this.pointerStartX = 0
     this.pointerStartY = 0
     this.pointerStartTime = 0
+  }
+
+  private readonly handleWindowResize = () => {
+    this.updateCanvasSize()
+  }
+
+  private updateCanvasSize() {
+    const playfieldChanged = this.resizeCanvasToDisplaySize(this.playfieldCanvas)
+    const nextChanged = this.resizeCanvasToDisplaySize(this.nextCanvas)
+
+    if ((playfieldChanged || nextChanged) && this.currentState) {
+      this.renderPlayfield(this.currentState)
+      this.renderNextQueue(this.currentState)
+    }
+  }
+
+  private resizeCanvasToDisplaySize(canvas: HTMLCanvasElement): boolean {
+    const rect = canvas.getBoundingClientRect()
+    const width = Math.round(rect.width)
+    const height = Math.round(rect.height)
+
+    if (width <= 0 || height <= 0) {
+      return false
+    }
+
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width
+      canvas.height = height
+      return true
+    }
+
+    return false
   }
 
   private canAcceptGameplayInput() {
