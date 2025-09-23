@@ -4,13 +4,21 @@ export interface LayoutScalerOptions {
 }
 
 export class LayoutScaler {
+  private readonly root: HTMLElement
+  private readonly targets: HTMLElement[]
+  private readonly options: LayoutScalerOptions
   private readonly observer: ResizeObserver | null
+  private readonly handleWindowResize: () => void
 
-  constructor(
-    private readonly root: HTMLElement,
-    private readonly targets: HTMLElement[],
-    private readonly options: LayoutScalerOptions = {},
-  ) {
+  constructor(root: HTMLElement, targets: HTMLElement[], options: LayoutScalerOptions = {}) {
+    this.root = root
+    this.targets = targets
+    this.options = options
+
+    this.handleWindowResize = () => {
+      this.update()
+    }
+
     this.observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => this.update()) : null
 
     if (this.observer) {
@@ -21,10 +29,6 @@ export class LayoutScaler {
     }
 
     window.addEventListener('resize', this.handleWindowResize)
-    this.update()
-  }
-
-  private readonly handleWindowResize = () => {
     this.update()
   }
 
