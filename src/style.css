@@ -188,7 +188,7 @@ body {
   height: 100%;
   width: auto;
   max-width: 100%;
-  aspect-ratio: 10 / 20;
+  aspect-ratio: 10 / 10;
   background: #151b24;
   border-radius: 8px;
   image-rendering: pixelated;
