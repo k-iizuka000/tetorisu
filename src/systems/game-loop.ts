@@ -39,28 +39,28 @@ export class GameLoop {
     this.game.setSoftDrop(active)
   }
 
-  moveLeft() {
-    this.game.moveHorizontal(-1)
+  moveLeft(): boolean {
+    return this.game.moveHorizontal(-1)
   }
 
-  moveRight() {
-    this.game.moveHorizontal(1)
+  moveRight(): boolean {
+    return this.game.moveHorizontal(1)
   }
 
-  rotateClockwise() {
-    this.game.rotate('clockwise')
+  rotateClockwise(): boolean {
+    return this.game.rotate('clockwise')
   }
 
-  rotateCounterClockwise() {
-    this.game.rotate('counterclockwise')
+  rotateCounterClockwise(): boolean {
+    return this.game.rotate('counterclockwise')
   }
 
-  softDropStep() {
-    this.game.softDropStep()
+  softDropStep(): boolean {
+    return this.game.softDropStep()
   }
 
-  hardDrop() {
-    this.game.hardDrop()
+  hardDrop(): number {
+    return this.game.hardDrop()
   }
 
   private handleFrame = (timestamp: number) => {

@@ -8,6 +8,7 @@ import {
   TETROMINO_SHAPES,
 } from '../core/constants'
 import type { ActivePiece, PieceType } from '../core/types'
+import { SoundController } from '../systems/sound-controller'
 
 const PIECE_COLORS: Record<PieceType, string> = {
   I: '#00f0f0',
@@ -51,6 +52,7 @@ export class GameApp {
   private longPressTimeoutId: number | null = null
   private longPressTriggered = false
   private readonly resizeObserver: ResizeObserver | null
+  private readonly sound = new SoundController()
 
   constructor(options: AppOptions) {
     this.playfieldCanvas = options.playfieldCanvas
@@ -110,6 +112,8 @@ export class GameApp {
     if (this.hasStarted) return
     this.hasStarted = true
     this.pauseButton.textContent = 'Pause'
+    void this.sound.resume()
+    this.sound.playGameStart()
     this.loop.start()
   }
 
@@ -150,6 +154,7 @@ export class GameApp {
     this.renderPlayfield(result.state)
     this.renderNextQueue(result.state)
     this.updateHud(result.state)
+    this.sound.handleEvents(result.events)
   }
 
   private bindPauseButton() {
@@ -208,12 +213,20 @@ export class GameApp {
       case 'ArrowRight':
         this.loop.moveRight()
         break
-      case 'ArrowDown':
-        this.loop.hardDrop()
+      case 'ArrowDown': {
+        const dropped = this.loop.hardDrop()
+        if (dropped > 0) {
+          this.sound.playHardDrop(dropped)
+        }
         break
-      case ' ':
-        this.loop.rotateClockwise()
+      }
+      case ' ': {
+        const rotated = this.loop.rotateClockwise()
+        if (rotated) {
+          this.sound.playRotation()
+        }
         break
+      }
       default:
         break
     }
@@ -243,7 +256,10 @@ export class GameApp {
     this.clearLongPressTimer()
     this.longPressTimeoutId = window.setTimeout(() => {
       if (this.activePointerId === event.pointerId && !this.pointerHandled) {
-        this.loop.rotateCounterClockwise()
+        const rotated = this.loop.rotateCounterClockwise()
+        if (rotated) {
+          this.sound.playRotation()
+        }
         this.longPressTriggered = true
         this.pointerHandled = true
       }
@@ -286,7 +302,10 @@ export class GameApp {
     if (dy >= SWIPE_THRESHOLD && absDy > absDx) {
       this.pointerHandled = true
       this.clearLongPressTimer()
-      this.loop.hardDrop()
+      const dropped = this.loop.hardDrop()
+      if (dropped > 0) {
+        this.sound.playHardDrop(dropped)
+      }
       return
     }
   }
@@ -332,7 +351,10 @@ export class GameApp {
           absDy <= TAP_SLOP
 
         if (isTap) {
-          this.loop.rotateClockwise()
+          const rotated = this.loop.rotateClockwise()
+          if (rotated) {
+            this.sound.playRotation()
+          }
         } else if (!handled && !longPressTriggered) {
           if (absDx >= SWIPE_THRESHOLD && absDx > absDy) {
             if (dx < 0) {
@@ -341,7 +363,10 @@ export class GameApp {
               this.loop.moveRight()
             }
           } else if (dy >= SWIPE_THRESHOLD && absDy > absDx) {
-            this.loop.hardDrop()
+            const dropped = this.loop.hardDrop()
+            if (dropped > 0) {
+              this.sound.playHardDrop(dropped)
+            }
           }
         }
       }
