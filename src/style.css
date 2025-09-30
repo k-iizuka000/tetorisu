@@ -188,7 +188,7 @@ body {
   height: 100%;
   width: auto;
   max-width: 100%;
-  aspect-ratio: 10 / 10;
+  aspect-ratio: 10 / 20;
   background: #151b24;
   border-radius: 8px;
   image-rendering: pixelated;
@@ -482,8 +482,9 @@ body {
 
   .playfield canvas {
     width: 100%;
-    height: 100%;
+    height: auto;
     max-width: 100%;
+    aspect-ratio: 10 / 20;
   }
 
   .sidebar {
