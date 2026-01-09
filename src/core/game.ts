@@ -2,10 +2,14 @@ import { Board } from './board'
 import { defaultRules } from './rules'
 import { SevenBagRandomizer } from './randomizer'
 import { Scoring } from './scoring'
+import { EFFECT_DURATIONS, ITEM_TYPES } from './items'
 import type {
   ActivePiece,
+  ActiveEffects,
   CellState,
   GameStatsSnapshot,
+  HeldPiece,
+  ItemType,
   PieceType,
   Point,
   RotationDirection,
@@ -16,11 +20,16 @@ import { createActivePiece, movePiece, rotatePiece } from './piece'
 const SOFT_DROP_REWARD_INTERVAL = 0.5
 const SOFT_DROP_REWARD_POINTS = 50
 const HARD_DROP_REWARD_POINTS = 100
+const ITEM_BONUS_POINTS = 200
+const ITEM_MAX_SLOTS = 3
 
 export interface GameViewState {
   board: readonly (readonly (CellState | null)[])[]
   activePiece: ActivePiece | null
   nextQueue: readonly PieceType[]
+  holdPiece: HeldPiece | null
+  inventory: readonly ItemType[]
+  effects: ActiveEffects
   stats: GameStatsSnapshot
   isPaused: boolean
   isGameOver: boolean
@@ -45,6 +54,8 @@ export class Game {
 
   private nextQueue: PieceType[] = []
   private activePiece: ActivePiece | null = null
+  private holdPiece: HeldPiece | null = null
+  private holdUsed = false
   private isPaused = false
   private isGameOver = false
   private softDropActive = false
@@ -52,6 +63,8 @@ export class Game {
   private softDropScoreAccumulator = 0
   private lockTimerMs: number | null = null
   private pendingEvents: GameEvent[] = []
+  private inventory: ItemType[] = []
+  private activeEffects: ActiveEffects = { freeze: 0, boost: 0 }
 
   constructor(rules: RulesConfig = defaultRules) {
     this.rules = rules
@@ -67,6 +80,8 @@ export class Game {
     this.scoring.reset()
     this.nextQueue = []
     this.activePiece = null
+    this.holdPiece = null
+    this.holdUsed = false
     this.isPaused = false
     this.isGameOver = false
     this.softDropActive = false
@@ -74,12 +89,15 @@ export class Game {
     this.softDropScoreAccumulator = 0
     this.lockTimerMs = null
     this.pendingEvents = []
+    this.inventory = []
+    this.activeEffects = { freeze: 0, boost: 0 }
     this.ensureQueue(this.previewCount + 1)
     this.spawnNextPiece()
   }
 
   tick(deltaSeconds: number): GameTickResult {
     if (!this.isPaused && !this.isGameOver) {
+      this.updateActiveEffects(deltaSeconds)
       this.updateSoftDropBonus(deltaSeconds)
       this.advanceGravity(deltaSeconds)
       this.processLockDelay(deltaSeconds)
@@ -131,6 +149,32 @@ export class Game {
     return false
   }
 
+  hold(): boolean {
+    if (!this.activePiece) return false
+    if (this.holdUsed) return false
+    const current = this.activePiece
+    const held = this.holdPiece
+    this.holdUsed = true
+    this.activePiece = null
+    this.lockTimerMs = null
+    this.fallAccumulator = 0
+
+    if (held) {
+      const swapped = createActivePiece(held.type, { isSpecial: held.isSpecial })
+      if (this.board.hasCollision(swapped)) {
+        this.isGameOver = true
+        this.pendingEvents.push({ type: 'game-over' })
+        return false
+      }
+      this.activePiece = swapped
+      this.holdPiece = { type: current.type, isSpecial: current.isSpecial }
+      return true
+    }
+
+    this.holdPiece = { type: current.type, isSpecial: current.isSpecial }
+    return this.spawnNextPiece()
+  }
+
   hardDrop(): number {
     let dropped = 0
     while (this.tryMove({ x: 0, y: 1 }, { resetAccumulator: true })) {
@@ -148,10 +192,50 @@ export class Game {
       board: this.board.snapshot(),
       activePiece: this.activePiece,
       nextQueue: this.nextQueue.slice(0, this.previewCount),
+      holdPiece: this.holdPiece,
+      inventory: this.inventory.slice(),
+      effects: { ...this.activeEffects },
       stats: this.scoring.snapshot(),
       isPaused: this.isPaused,
       isGameOver: this.isGameOver,
     }
+  }
+
+  useItem(slotIndex: number): boolean {
+    if (slotIndex < 0 || slotIndex >= this.inventory.length) {
+      return false
+    }
+    const item = this.inventory[slotIndex]
+    if (!item) return false
+
+    this.inventory.splice(slotIndex, 1)
+
+    switch (item) {
+      case 'bomb': {
+        const cleared = this.board.clearRows([this.board.height - 1, this.board.height - 2])
+        if (cleared > 0) {
+          this.scoring.addBonus(cleared * ITEM_BONUS_POINTS)
+        }
+        break
+      }
+      case 'shuffle': {
+        this.nextQueue = this.shuffleArray(this.nextQueue)
+        this.scoring.addBonus(ITEM_BONUS_POINTS)
+        break
+      }
+      case 'freeze': {
+        this.activeEffects.freeze = EFFECT_DURATIONS.freeze
+        break
+      }
+      case 'boost': {
+        this.activeEffects.boost = EFFECT_DURATIONS.boost
+        break
+      }
+      default:
+        break
+    }
+
+    return true
   }
 
   private advanceGravity(deltaSeconds: number) {
@@ -162,9 +246,13 @@ export class Game {
       }
     }
 
+    const levelMultiplier = 1 + (this.scoring.currentLevel - 1) * 0.08
+    const freezeMultiplier = this.activeEffects.freeze > 0 ? 0.35 : 1
     const gravityRate =
       this.rules.gravityPerSecond *
-      (this.softDropActive ? this.rules.softDropMultiplier : 1)
+      (this.softDropActive ? this.rules.softDropMultiplier : 1) *
+      levelMultiplier *
+      freezeMultiplier
 
     this.fallAccumulator += gravityRate * deltaSeconds
 
@@ -245,11 +333,17 @@ export class Game {
     this.activePiece = null
     this.lockTimerMs = null
     this.fallAccumulator = 0
+    this.holdUsed = false
 
-    this.scoring.registerLineClear(
-      lockResult.linesCleared,
-      lockResult.specialMultiplierApplied,
-    )
+    const scoreMultiplier = this.activeEffects.boost > 0 ? 2 : 1
+    this.scoring.registerLineClear(lockResult.linesCleared, {
+      specialMultiplier: lockResult.specialMultiplierApplied,
+      scoreMultiplier,
+    })
+
+    if (lockResult.linesCleared > 0 && lockResult.specialMultiplierApplied) {
+      this.awardRandomItem()
+    }
 
     this.pendingEvents.push({
       type: 'lock',
@@ -311,5 +405,29 @@ export class Game {
     const events = this.pendingEvents
     this.pendingEvents = []
     return events
+  }
+
+  private awardRandomItem() {
+    if (this.inventory.length >= ITEM_MAX_SLOTS) return
+    const item = ITEM_TYPES[Math.floor(Math.random() * ITEM_TYPES.length)]
+    if (!item) return
+    this.inventory.push(item)
+  }
+
+  private updateActiveEffects(deltaSeconds: number) {
+    for (const key of Object.keys(this.activeEffects) as Array<keyof ActiveEffects>) {
+      if (this.activeEffects[key] > 0) {
+        this.activeEffects[key] = Math.max(0, this.activeEffects[key] - deltaSeconds)
+      }
+    }
+  }
+
+  private shuffleArray<T>(items: T[]): T[] {
+    const copy = [...items]
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[copy[i], copy[j]] = [copy[j], copy[i]]
+    }
+    return copy
   }
 }

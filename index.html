@@ -14,6 +14,16 @@
         aria-hidden="false"
       >
         <h1 class="app-title">Tetorisu Party!</h1>
+        <div class="start-copy">
+          <p>スペシャルブロックでラインを消して、アイテムを獲得しよう！</p>
+          <ul class="control-list">
+            <li>← →：移動</li>
+            <li>↓：ハードドロップ</li>
+            <li>Space：回転</li>
+            <li>C / Shift：ホールド</li>
+            <li>1〜3：アイテム使用</li>
+          </ul>
+        </div>
         <button
           id="start-button"
           type="button"
@@ -37,21 +47,65 @@
         </section>
         <aside class="sidebar" aria-labelledby="sidebar-label">
           <h2 id="sidebar-label" class="visually-hidden">ステータスパネル</h2>
+          <section class="hold" aria-labelledby="hold-label">
+            <div class="panel-header">
+              <h3 id="hold-label" class="section-title">Hold</h3>
+              <button id="hold-button" type="button" class="hold-button" aria-label="ホールド">
+                Hold
+              </button>
+            </div>
+            <canvas id="hold-preview" width="128" height="128" aria-label="ホールド中のミノ"></canvas>
+          </section>
           <section class="next" aria-labelledby="next-label">
             <h3 id="next-label" class="section-title">Next</h3>
             <canvas id="next-preview" width="128" height="256" aria-label="次のミノ"></canvas>
           </section>
           <section class="hud" aria-labelledby="score-label">
             <div class="hud__header">
-              <h3 id="score-label" class="section-title">Score</h3>
+              <h3 id="score-label" class="section-title">Stats</h3>
               <button id="pause-toggle" type="button" class="pause-button" aria-label="ポーズを切り替える">
                 Pause
               </button>
             </div>
-            <p class="score" aria-live="polite" aria-atomic="true">
-              <span class="score__label">SCORE</span>
-              <span id="score-value" class="score__value">0</span>
-            </p>
+            <dl class="stats" aria-live="polite" aria-atomic="true">
+              <div class="stat">
+                <dt>Score</dt>
+                <dd id="score-value">0</dd>
+              </div>
+              <div class="stat">
+                <dt>Lines</dt>
+                <dd id="lines-value">0</dd>
+              </div>
+              <div class="stat">
+                <dt>Level</dt>
+                <dd id="level-value">1</dd>
+              </div>
+              <div class="stat">
+                <dt>Combo</dt>
+                <dd id="combo-value">0</dd>
+              </div>
+            </dl>
+            <div class="items-panel" aria-labelledby="items-label">
+              <h4 id="items-label" class="panel-title">Items</h4>
+              <div class="items" role="list">
+                <button class="item-card" type="button" data-item-slot="0" aria-label="アイテムスロット1">
+                  <span class="item-card__name">空</span>
+                  <span class="item-card__meta">1</span>
+                </button>
+                <button class="item-card" type="button" data-item-slot="1" aria-label="アイテムスロット2">
+                  <span class="item-card__name">空</span>
+                  <span class="item-card__meta">2</span>
+                </button>
+                <button class="item-card" type="button" data-item-slot="2" aria-label="アイテムスロット3">
+                  <span class="item-card__name">空</span>
+                  <span class="item-card__meta">3</span>
+                </button>
+              </div>
+            </div>
+            <div class="effects-panel" aria-labelledby="effects-label">
+              <h4 id="effects-label" class="panel-title">Effects</h4>
+              <div id="effect-list" class="effect-list"></div>
+            </div>
           </section>
         </aside>
       </main>
