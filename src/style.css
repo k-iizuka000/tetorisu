@@ -195,7 +195,7 @@ body {
   grid-area: playfield;
   display: flex;
   justify-content: center;
-  align-items: stretch; /* 縦方向に可能な限り伸ばす */
+  align-items: center;
   padding: clamp(12px, 2vw, 20px);
   border-radius: 16px;
   background: linear-gradient(145deg, rgba(24, 28, 35, 0.85), rgba(7, 8, 9, 0.85));
@@ -203,10 +203,11 @@ body {
 }
 
 .playfield canvas {
-  height: 100%;
-  width: auto;
+  width: 100%;
+  height: auto;
   max-width: 100%;
-  aspect-ratio: 10 / 10;
+  max-height: 100%;
+  aspect-ratio: 10 / 20;
   background: #151b24;
   border-radius: 8px;
   image-rendering: pixelated;
@@ -610,7 +611,7 @@ body {
 
   .playfield canvas {
     width: 100%;
-    height: 100%;
+    height: auto;
     max-width: 100%;
   }
 
