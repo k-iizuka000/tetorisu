@@ -52,7 +52,7 @@ const app = new GameApp({
 })
 
 const layoutScaler = new LayoutScaler(appRoot, [startScreen, gameScreen], {
-  topOffsetPx: 24,
+  topOffsetPx: 0,
   onAfterUpdate: () => app.handleResize(),
 })
 
