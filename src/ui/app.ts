@@ -7,8 +7,9 @@ import {
   BOARD_TOTAL_HEIGHT,
   TETROMINO_SHAPES,
 } from '../core/constants'
-import type { ActivePiece, PieceType } from '../core/types'
+import type { ActivePiece, ItemType, PieceType } from '../core/types'
 import { SoundController } from '../systems/sound-controller'
+import { EFFECT_LABELS, ITEM_LABELS } from '../core/items'
 
 const PIECE_COLORS: Record<PieceType, string> = {
   I: '#00f0f0',
@@ -29,7 +30,15 @@ const LONG_PRESS_DURATION_MS = 350
 export interface AppOptions {
   playfieldCanvas: HTMLCanvasElement
   nextCanvas: HTMLCanvasElement
+  holdCanvas: HTMLCanvasElement
   pauseButton: HTMLButtonElement
+  holdButton: HTMLButtonElement
+  itemButtons: HTMLButtonElement[]
+  effectList: HTMLDivElement
+  scoreValue: HTMLElement
+  linesValue: HTMLElement
+  levelValue: HTMLElement
+  comboValue: HTMLElement
 }
 
 export class GameApp {
@@ -39,8 +48,16 @@ export class GameApp {
   private readonly playfieldCtx: CanvasRenderingContext2D
   private readonly nextCanvas: HTMLCanvasElement
   private readonly nextCtx: CanvasRenderingContext2D
+  private readonly holdCanvas: HTMLCanvasElement
+  private readonly holdCtx: CanvasRenderingContext2D
   private readonly pauseButton: HTMLButtonElement
+  private readonly holdButton: HTMLButtonElement
+  private readonly itemButtons: HTMLButtonElement[]
+  private readonly effectList: HTMLDivElement
   private readonly scoreElement: HTMLElement
+  private readonly linesElement: HTMLElement
+  private readonly levelElement: HTMLElement
+  private readonly comboElement: HTMLElement
   private currentState: GameViewState | null = null
   private hasStarted = false
   private readonly isTouchDevice: boolean
@@ -57,8 +74,10 @@ export class GameApp {
   constructor(options: AppOptions) {
     this.playfieldCanvas = options.playfieldCanvas
     this.nextCanvas = options.nextCanvas
+    this.holdCanvas = options.holdCanvas
     const playfieldCtx = options.playfieldCanvas.getContext('2d')
     const nextCtx = options.nextCanvas.getContext('2d')
+    const holdCtx = options.holdCanvas.getContext('2d')
 
     if (!playfieldCtx) {
       throw new Error('Failed to acquire playfield 2D context')
@@ -68,10 +87,21 @@ export class GameApp {
       throw new Error('Failed to acquire next preview 2D context')
     }
 
+    if (!holdCtx) {
+      throw new Error('Failed to acquire hold preview 2D context')
+    }
+
     this.playfieldCtx = playfieldCtx
     this.nextCtx = nextCtx
+    this.holdCtx = holdCtx
     this.pauseButton = options.pauseButton
-    this.scoreElement = document.getElementById('score-value') ?? this.pauseButton
+    this.holdButton = options.holdButton
+    this.itemButtons = options.itemButtons
+    this.effectList = options.effectList
+    this.scoreElement = options.scoreValue
+    this.linesElement = options.linesValue
+    this.levelElement = options.levelValue
+    this.comboElement = options.comboValue
     this.loop = new GameLoop(this.game, (result) => this.handleFrame(result))
     this.isTouchDevice = GameApp.detectTouchDevice()
     this.resizeObserver =
@@ -80,6 +110,8 @@ export class GameApp {
         : null
 
     this.bindPauseButton()
+    this.bindHoldButton()
+    this.bindItemButtons()
     this.bindKeyboard()
     if (this.isTouchDevice) {
       this.bindTouchGestures()
@@ -88,6 +120,7 @@ export class GameApp {
     if (this.resizeObserver) {
       this.resizeObserver.observe(this.playfieldCanvas)
       this.resizeObserver.observe(this.nextCanvas)
+      this.resizeObserver.observe(this.holdCanvas)
     }
 
     window.addEventListener('resize', this.handleWindowResize)
@@ -135,6 +168,10 @@ export class GameApp {
   dispose() {
     this.loop.stop()
     this.pauseButton.removeEventListener('click', this.handlePauseClick)
+    this.holdButton.removeEventListener('click', this.handleHoldClick)
+    for (const button of this.itemButtons) {
+      button.removeEventListener('click', this.handleItemClick)
+    }
     window.removeEventListener('keydown', this.handleKeyDown)
     window.removeEventListener('keyup', this.handleKeyUp)
     window.removeEventListener('resize', this.handleWindowResize)
@@ -153,6 +190,7 @@ export class GameApp {
     this.currentState = result.state
     this.renderPlayfield(result.state)
     this.renderNextQueue(result.state)
+    this.renderHoldPiece(result.state)
     this.updateHud(result.state)
     this.sound.handleEvents(result.events)
   }
@@ -163,6 +201,30 @@ export class GameApp {
 
   private readonly handlePauseClick = () => {
     this.togglePause()
+  }
+
+  private bindHoldButton() {
+    this.holdButton.addEventListener('click', this.handleHoldClick)
+  }
+
+  private readonly handleHoldClick = () => {
+    if (!this.canAcceptGameplayInput()) return
+    this.game.hold()
+  }
+
+  private bindItemButtons() {
+    for (const button of this.itemButtons) {
+      button.addEventListener('click', this.handleItemClick)
+    }
+  }
+
+  private readonly handleItemClick = (event: Event) => {
+    if (!this.canAcceptGameplayInput()) return
+    const target = event.currentTarget
+    if (!(target instanceof HTMLButtonElement)) return
+    const slot = Number(target.dataset.itemSlot)
+    if (Number.isNaN(slot)) return
+    this.game.useItem(slot)
   }
 
   private bindKeyboard() {
@@ -196,6 +258,12 @@ export class GameApp {
       case 'ArrowRight':
       case 'ArrowDown':
       case ' ':
+      case 'Shift':
+      case 'c':
+      case 'C':
+      case '1':
+      case '2':
+      case '3':
         event.preventDefault()
         break
       default:
@@ -225,6 +293,18 @@ export class GameApp {
         if (rotated) {
           this.sound.playRotation()
         }
+        break
+      }
+      case 'c':
+      case 'C':
+      case 'Shift':
+        this.game.hold()
+        break
+      case '1':
+      case '2':
+      case '3': {
+        const slot = Number(event.key) - 1
+        this.game.useItem(slot)
         break
       }
       default:
@@ -398,10 +478,12 @@ export class GameApp {
   private updateCanvasSize() {
     const playfieldChanged = this.resizeCanvasToDisplaySize(this.playfieldCanvas)
     const nextChanged = this.resizeCanvasToDisplaySize(this.nextCanvas)
+    const holdChanged = this.resizeCanvasToDisplaySize(this.holdCanvas)
 
-    if ((playfieldChanged || nextChanged) && this.currentState) {
+    if ((playfieldChanged || nextChanged || holdChanged) && this.currentState) {
       this.renderPlayfield(this.currentState)
       this.renderNextQueue(this.currentState)
+      this.renderHoldPiece(this.currentState)
     }
   }
 
@@ -647,6 +729,17 @@ export class GameApp {
     })
   }
 
+  private renderHoldPiece(state: GameViewState) {
+    const ctx = this.holdCtx
+    const { width, height } = ctx.canvas
+    ctx.clearRect(0, 0, width, height)
+    ctx.fillStyle = '#11161f'
+    ctx.fillRect(0, 0, width, height)
+
+    if (!state.holdPiece) return
+    this.drawPreviewPiece(ctx, state.holdPiece.type, width, height, 0)
+  }
+
   private drawPreviewPiece(
     ctx: CanvasRenderingContext2D,
     type: PieceType,
@@ -685,9 +778,60 @@ export class GameApp {
 
   private updateHud(state: GameViewState) {
     this.scoreElement.textContent = state.stats.score.toString()
+    this.linesElement.textContent = state.stats.linesCleared.toString()
+    this.levelElement.textContent = state.stats.level.toString()
+    this.comboElement.textContent = state.stats.combo.toString()
     this.pauseButton.textContent = state.isPaused ? 'Resume' : 'Pause'
     if (state.isGameOver) {
       this.pauseButton.textContent = 'Restart'
+    }
+    const canUse = this.canAcceptGameplayInput()
+    this.holdButton.disabled = !canUse
+    this.renderInventory(state.inventory, canUse)
+    this.renderEffects(state.effects)
+  }
+
+  private renderInventory(inventory: readonly ItemType[], canUse: boolean) {
+    for (const button of this.itemButtons) {
+      const slotIndex = Number(button.dataset.itemSlot)
+      const item = inventory[slotIndex]
+      if (!item) {
+        button.disabled = true
+        button.dataset.itemType = ''
+        button.title = ''
+        button.innerHTML =
+          '<span class="item-card__name">空</span><span class="item-card__meta">' +
+          (slotIndex + 1).toString() +
+          '</span>'
+        continue
+      }
+      const label = ITEM_LABELS[item]
+      button.disabled = !canUse
+      button.dataset.itemType = item
+      button.title = label.description
+      button.innerHTML = `<span class="item-card__name">${label.name}</span><span class="item-card__meta">${
+        slotIndex + 1
+      }</span>`
+    }
+  }
+
+  private renderEffects(effects: GameViewState['effects']) {
+    this.effectList.innerHTML = ''
+    const entries = Object.entries(effects).filter(([, remaining]) => remaining > 0)
+    if (entries.length === 0) {
+      this.effectList.textContent = 'なし'
+      return
+    }
+    for (const [key, remaining] of entries) {
+      const badge = document.createElement('span')
+      badge.className = 'effect-badge'
+      const label = EFFECT_LABELS[key as keyof typeof EFFECT_LABELS]
+      badge.textContent = label
+      const timer = document.createElement('span')
+      timer.className = 'effect-badge__timer'
+      timer.textContent = `${Math.ceil(remaining)}s`
+      badge.appendChild(timer)
+      this.effectList.appendChild(badge)
     }
   }
 }

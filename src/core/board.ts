@@ -94,6 +94,22 @@ export class Board {
     )
   }
 
+  clearRows(rowIndexes: number[]): number {
+    if (rowIndexes.length === 0) return 0
+    const uniqueRows = Array.from(new Set(rowIndexes))
+      .filter((rowIndex) => rowIndex >= 0 && rowIndex < this.grid.length)
+      .sort((a, b) => b - a)
+
+    let cleared = 0
+    for (const rowIndex of uniqueRows) {
+      this.grid.splice(rowIndex, 1)
+      this.grid.unshift(createEmptyRow())
+      cleared += 1
+    }
+
+    return cleared
+  }
+
   private clearFullLines(): { linesCleared: number; clearedRows: number[] } {
     const clearedRows: number[] = []
 

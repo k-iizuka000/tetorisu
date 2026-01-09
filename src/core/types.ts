@@ -31,6 +31,22 @@ export interface GameStatsSnapshot {
   score: number
   linesCleared: number
   level: number
+  combo: number
+  maxCombo: number
+}
+
+export type ItemType = 'bomb' | 'shuffle' | 'freeze' | 'boost'
+
+export type EffectType = 'freeze' | 'boost'
+
+export interface ActiveEffects {
+  freeze: number
+  boost: number
+}
+
+export interface HeldPiece {
+  type: PieceType
+  isSpecial: boolean
 }
 
 export interface RulesConfig {

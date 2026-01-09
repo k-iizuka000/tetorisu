@@ -44,6 +44,24 @@ body {
   text-align: center;
 }
 
+.start-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.control-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
 .start-screen,
 .game-layout {
   --layout-scale: 1;
@@ -198,7 +216,7 @@ body {
 .sidebar {
   grid-area: sidebar;
   display: grid;
-  grid-template-rows: auto 1fr; /* NEXTは必要なサイズ、SCOREは残りを使用 */
+  grid-template-rows: auto auto 1fr; /* HOLD/NEXT/HUD */
   gap: clamp(12px, 2vw, 24px);
   min-width: 0; /* 80/20保持のため右カラムの最小幅制約を解除 */
 }
@@ -212,6 +230,7 @@ body {
   min-height: 0;
 }
 
+.hold,
 .next,
 .hud {
   padding: clamp(12px, 2vw, 18px);
@@ -229,20 +248,52 @@ body {
   color: rgba(255, 255, 255, 0.7);
 }
 
-.next {
-  position: relative;
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
+.hold-button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: none;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0c1117;
+  background: #ffce6b;
+  cursor: pointer;
+}
+
+.hold-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.hold canvas,
 .next canvas {
   display: block;
   width: 100%;
   max-width: 100%;
   max-height: 100%;
-  aspect-ratio: 1 / 2;
   background: #11161f;
   border-radius: 8px;
   margin: 0 auto;
   image-rendering: pixelated;
+}
+
+.hold canvas {
+  aspect-ratio: 1 / 1;
+}
+
+.next {
+  position: relative;
+}
+
+.next canvas {
+  aspect-ratio: 1 / 2;
 }
 
 .hud {
@@ -259,10 +310,6 @@ body {
 .section-title {
   order: 1;
   margin: 0 0 12px;
-}
-
-.score {
-  order: 2;
 }
 
 .pause-button {
@@ -292,25 +339,104 @@ body {
   transform: translateY(1px);
 }
 
-.score {
+.stats {
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
   font-variant-numeric: tabular-nums;
 }
 
-.score__label {
-  display: none; /* セクションタイトルと重複するため非表示 */
+.stat {
+  margin: 0;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.score__value {
-  font-size: clamp(1.5rem, 3vw, 2.3rem);
+.stat dt {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.stat dd {
+  margin: 0;
+  font-size: 1.1rem;
   font-weight: 700;
-  display: inline-block;
-  min-width: 6ch;
-  text-align: right;
+}
+
+.panel-title {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.items {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.item-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  min-height: 68px;
+}
+
+.item-card:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.item-card__name {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.item-card__meta {
+  align-self: flex-end;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.effect-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.effect-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(117, 241, 255, 0.18);
+  border: 1px solid rgba(117, 241, 255, 0.35);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.effect-badge__timer {
+  color: rgba(255, 255, 255, 0.7);
+  font-variant-numeric: tabular-nums;
 }
 
 #orientation-guard {
@@ -367,6 +493,7 @@ body {
     padding: 10px;
   }
 
+  .hold,
   .next,
   .hud {
     padding: 10px;
@@ -376,8 +503,8 @@ body {
     font-size: clamp(0.8rem, 1.2vw, 1rem);
   }
 
-  .score__value {
-    font-size: clamp(1.2rem, 2.2vw, 1.8rem);
+  .stat dd {
+    font-size: clamp(1rem, 2.2vw, 1.5rem);
   }
 
   .pause-button {
@@ -426,6 +553,7 @@ body {
     gap: 8px;
   }
 
+  .hold,
   .next {
     padding: 8px;
   }
@@ -452,8 +580,8 @@ body {
     min-height: 44px; /* タッチ操作基準をクリア */
   }
 
-  .score__value {
-    font-size: 1.2rem;
+  .stat dd {
+    font-size: 1rem;
   }
 }
 
@@ -489,10 +617,11 @@ body {
   .sidebar {
     min-width: 0;
     overflow: hidden;
-    grid-template-rows: minmax(120px, auto) 1fr;
+    grid-template-rows: minmax(110px, auto) minmax(140px, auto) 1fr;
     gap: 8px;
   }
 
+  .hold,
   .next {
     padding: 8px;
   }
@@ -521,17 +650,12 @@ body {
     min-height: 44px; /* タッチ操作基準をクリア */
   }
 
-  .score {
-    gap: 4px;
+  .stats {
+    gap: 6px;
   }
 
-  .score__label {
-    font-size: 0.8rem;
-  }
-
-  .score__value {
-    font-size: 1.1rem;
-    min-width: auto;
+  .stat dd {
+    font-size: 0.95rem;
   }
 }
 
@@ -555,10 +679,11 @@ body {
   }
 
   .sidebar {
-    grid-template-rows: minmax(120px, auto) 1fr;
+    grid-template-rows: minmax(110px, auto) minmax(120px, auto) 1fr;
     gap: 8px;
   }
 
+  .hold,
   .next {
     padding: 8px;
   }
@@ -585,16 +710,8 @@ body {
     width: 100%;
   }
 
-  .score {
-    gap: 4px;
-  }
-
-  .score__label {
-    font-size: 0.75rem; /* 読みやすいサイズ */
-  }
-
-  .score__value {
-    font-size: 1rem; /* 16px相当 */
+  .stat dd {
+    font-size: 0.9rem; /* 14px相当 */
   }
 }
 
