@@ -147,6 +147,7 @@ export class GameApp {
     this.pauseButton.textContent = 'Pause'
     void this.sound.resume()
     this.sound.playGameStart()
+    this.sound.startBgm()
     this.loop.start()
   }
 
@@ -158,15 +159,25 @@ export class GameApp {
       this.currentState = state
       this.updateHud(state)
       this.pauseButton.textContent = 'Pause'
+      this.sound.playGameStart()
+      this.sound.startBgm()
+      this.sound.setBgmPaused(false)
       return
     }
     this.loop.togglePause()
     const state = this.game.getState()
     this.pauseButton.textContent = state.isPaused ? 'Resume' : 'Pause'
+    this.sound.setBgmPaused(state.isPaused)
+    if (state.isPaused) {
+      this.sound.playPause()
+    } else {
+      this.sound.playResume()
+    }
   }
 
   dispose() {
     this.loop.stop()
+    this.sound.dispose()
     this.pauseButton.removeEventListener('click', this.handlePauseClick)
     this.holdButton.removeEventListener('click', this.handleHoldClick)
     for (const button of this.itemButtons) {
@@ -209,7 +220,9 @@ export class GameApp {
 
   private readonly handleHoldClick = () => {
     if (!this.canAcceptGameplayInput()) return
-    this.game.hold()
+    if (this.game.hold()) {
+      this.sound.playHold()
+    }
   }
 
   private bindItemButtons() {
@@ -224,7 +237,9 @@ export class GameApp {
     if (!(target instanceof HTMLButtonElement)) return
     const slot = Number(target.dataset.itemSlot)
     if (Number.isNaN(slot)) return
-    this.game.useItem(slot)
+    if (this.game.useItem(slot)) {
+      this.sound.playItemUse()
+    }
   }
 
   private bindKeyboard() {
@@ -276,10 +291,14 @@ export class GameApp {
 
     switch (event.key) {
       case 'ArrowLeft':
-        this.loop.moveLeft()
+        if (this.loop.moveLeft()) {
+          this.sound.playMove()
+        }
         break
       case 'ArrowRight':
-        this.loop.moveRight()
+        if (this.loop.moveRight()) {
+          this.sound.playMove()
+        }
         break
       case 'ArrowDown': {
         const dropped = this.loop.hardDrop()
@@ -298,13 +317,17 @@ export class GameApp {
       case 'c':
       case 'C':
       case 'Shift':
-        this.game.hold()
+        if (this.game.hold()) {
+          this.sound.playHold()
+        }
         break
       case '1':
       case '2':
       case '3': {
         const slot = Number(event.key) - 1
-        this.game.useItem(slot)
+        if (this.game.useItem(slot)) {
+          this.sound.playItemUse()
+        }
         break
       }
       default:
@@ -372,9 +395,13 @@ export class GameApp {
       this.pointerHandled = true
       this.clearLongPressTimer()
       if (dx < 0) {
-        this.loop.moveLeft()
+        if (this.loop.moveLeft()) {
+          this.sound.playMove()
+        }
       } else {
-        this.loop.moveRight()
+        if (this.loop.moveRight()) {
+          this.sound.playMove()
+        }
       }
       return
     }
@@ -438,9 +465,13 @@ export class GameApp {
         } else if (!handled && !longPressTriggered) {
           if (absDx >= SWIPE_THRESHOLD && absDx > absDy) {
             if (dx < 0) {
-              this.loop.moveLeft()
+              if (this.loop.moveLeft()) {
+                this.sound.playMove()
+              }
             } else {
-              this.loop.moveRight()
+              if (this.loop.moveRight()) {
+                this.sound.playMove()
+              }
             }
           } else if (dy >= SWIPE_THRESHOLD && absDy > absDx) {
             const dropped = this.loop.hardDrop()
