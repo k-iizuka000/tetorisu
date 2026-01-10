@@ -16,7 +16,10 @@ const nextCanvas = query<HTMLCanvasElement>('#next-preview')
 const holdCanvas = query<HTMLCanvasElement>('#hold-preview')
 const pauseButton = query<HTMLButtonElement>('#pause-toggle')
 const startButton = query<HTMLButtonElement>('#start-button')
+const howtoButton = query<HTMLButtonElement>('#howto-button')
+const backToStartButton = query<HTMLButtonElement>('#back-to-start')
 const startScreen = query<HTMLElement>('#start-screen')
+const howtoScreen = query<HTMLElement>('#howto-screen')
 const gameScreen = query<HTMLElement>('#game-screen')
 const holdButton = query<HTMLButtonElement>('#hold-button')
 const itemButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-item-slot]'))
@@ -34,6 +37,8 @@ itemButtons.forEach((button) => {
 })
 startScreen.hidden = false
 startScreen.setAttribute('aria-hidden', 'false')
+howtoScreen.hidden = true
+howtoScreen.setAttribute('aria-hidden', 'true')
 gameScreen.hidden = true
 gameScreen.setAttribute('aria-hidden', 'true')
 
@@ -51,7 +56,7 @@ const app = new GameApp({
   comboValue,
 })
 
-const layoutScaler = new LayoutScaler(appRoot, [startScreen, gameScreen], {
+const layoutScaler = new LayoutScaler(appRoot, [startScreen, howtoScreen, gameScreen], {
   topOffsetPx: 24,
   onAfterUpdate: () => app.handleResize(),
 })
@@ -68,10 +73,36 @@ startButton.addEventListener('click', () => {
   appRoot.dataset.screen = 'playing'
   startScreen.hidden = true
   startScreen.setAttribute('aria-hidden', 'true')
+  howtoScreen.hidden = true
+  howtoScreen.setAttribute('aria-hidden', 'true')
   gameScreen.hidden = false
   gameScreen.setAttribute('aria-hidden', 'false')
   layoutScaler.update()
   app.start()
+})
+
+howtoButton.addEventListener('click', () => {
+  if (hasStarted) return
+  appRoot.dataset.screen = 'howto'
+  startScreen.hidden = true
+  startScreen.setAttribute('aria-hidden', 'true')
+  howtoScreen.hidden = false
+  howtoScreen.setAttribute('aria-hidden', 'false')
+  gameScreen.hidden = true
+  gameScreen.setAttribute('aria-hidden', 'true')
+  layoutScaler.update()
+})
+
+backToStartButton.addEventListener('click', () => {
+  if (hasStarted) return
+  appRoot.dataset.screen = 'intro'
+  startScreen.hidden = false
+  startScreen.setAttribute('aria-hidden', 'false')
+  howtoScreen.hidden = true
+  howtoScreen.setAttribute('aria-hidden', 'true')
+  gameScreen.hidden = true
+  gameScreen.setAttribute('aria-hidden', 'true')
+  layoutScaler.update()
 })
 
 const dispose = () => {

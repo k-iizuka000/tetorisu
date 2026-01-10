@@ -44,6 +44,13 @@ body {
   text-align: center;
 }
 
+.start-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(100%, 280px);
+}
+
 .start-copy {
   display: flex;
   flex-direction: column;
@@ -92,12 +99,25 @@ body {
   display: none;
 }
 
+#app[data-screen='intro'] #howto-screen {
+  display: none;
+}
+
 #app[data-screen='playing'] #start-screen {
   display: none;
 }
 
 #app[data-screen='playing'] #game-screen {
   display: grid;
+}
+
+#app[data-screen='howto'] #start-screen,
+#app[data-screen='howto'] #game-screen {
+  display: none;
+}
+
+#app[data-screen='howto'] #howto-screen {
+  display: flex;
 }
 
 .app-title {
@@ -163,6 +183,86 @@ body {
 
 .start-button[data-started='true'] {
   background: linear-gradient(135deg, #8df8b1, #7df4ff);
+}
+
+.start-button--secondary {
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(149, 198, 255, 0.9));
+}
+
+.howto-screen {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 20px;
+  border-radius: 20px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.12), rgba(13, 16, 22, 0.78));
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+  height: 100%;
+  overflow: hidden;
+}
+
+.howto-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.howto-title {
+  margin: 0;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.howto-back-button {
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  font: inherit;
+  font-weight: 700;
+  color: #0c1117;
+  background: #f3c565;
+  cursor: pointer;
+}
+
+.howto-content {
+  flex: 1;
+  display: grid;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 6px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.howto-section {
+  background: rgba(16, 20, 28, 0.7);
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.howto-section h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.howto-section p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.howto-section ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
 }
 
 .visually-hidden {
