@@ -29,6 +29,10 @@ body {
   padding: var(--page-padding-block) var(--page-padding-inline);
   background: radial-gradient(circle at 50% 20%, #1b1f2a, #090b10 65%);
   touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .start-screen {
