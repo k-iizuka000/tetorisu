@@ -39,6 +39,7 @@ export interface AppOptions {
   linesValue: HTMLElement
   levelValue: HTMLElement
   comboValue: HTMLElement
+  onGameOver?: (score: number) => void
 }
 
 export class GameApp {
@@ -70,6 +71,8 @@ export class GameApp {
   private longPressTriggered = false
   private readonly resizeObserver: ResizeObserver | null
   private readonly sound = new SoundController()
+  private readonly onGameOver?: (score: number) => void
+  private gameOverNotified = false
 
   constructor(options: AppOptions) {
     this.playfieldCanvas = options.playfieldCanvas
@@ -103,6 +106,7 @@ export class GameApp {
     this.levelElement = options.levelValue
     this.comboElement = options.comboValue
     this.loop = new GameLoop(this.game, (result) => this.handleFrame(result))
+    this.onGameOver = options.onGameOver
     this.isTouchDevice = GameApp.detectTouchDevice()
     this.resizeObserver =
       typeof ResizeObserver !== 'undefined'
@@ -144,11 +148,21 @@ export class GameApp {
   start() {
     if (this.hasStarted) return
     this.hasStarted = true
+    this.gameOverNotified = false
     this.pauseButton.textContent = 'Pause'
     void this.sound.resume()
     this.sound.playGameStart()
     this.sound.startBgm()
     this.loop.start()
+  }
+
+  stop() {
+    if (!this.hasStarted) return
+    this.loop.stop()
+    this.hasStarted = false
+    this.gameOverNotified = false
+    this.currentState = null
+    this.sound.stopBgm()
   }
 
   togglePause() {
@@ -204,6 +218,10 @@ export class GameApp {
     this.renderHoldPiece(result.state)
     this.updateHud(result.state)
     this.sound.handleEvents(result.events)
+    if (result.state.isGameOver && !this.gameOverNotified) {
+      this.gameOverNotified = true
+      this.onGameOver?.(result.state.stats.score)
+    }
   }
 
   private bindPauseButton() {
