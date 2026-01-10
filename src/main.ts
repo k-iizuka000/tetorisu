@@ -21,6 +21,9 @@ const backToStartButton = query<HTMLButtonElement>('#back-to-start')
 const startScreen = query<HTMLElement>('#start-screen')
 const howtoScreen = query<HTMLElement>('#howto-screen')
 const gameScreen = query<HTMLElement>('#game-screen')
+const gameOverScreen = query<HTMLElement>('#gameover-screen')
+const gameOverScore = query<HTMLElement>('#gameover-score')
+const gameOverBackButton = query<HTMLButtonElement>('#gameover-back')
 const holdButton = query<HTMLButtonElement>('#hold-button')
 const itemButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-item-slot]'))
 const effectList = query<HTMLDivElement>('#effect-list')
@@ -41,6 +44,8 @@ howtoScreen.hidden = true
 howtoScreen.setAttribute('aria-hidden', 'true')
 gameScreen.hidden = true
 gameScreen.setAttribute('aria-hidden', 'true')
+gameOverScreen.hidden = true
+gameOverScreen.setAttribute('aria-hidden', 'true')
 
 const app = new GameApp({
   playfieldCanvas,
@@ -54,6 +59,20 @@ const app = new GameApp({
   linesValue,
   levelValue,
   comboValue,
+  onGameOver: (score) => {
+    gameOverScore.textContent = score.toString()
+    pauseButton.disabled = true
+    appRoot.dataset.screen = 'gameover'
+    gameOverScreen.hidden = false
+    gameOverScreen.setAttribute('aria-hidden', 'false')
+    startScreen.hidden = true
+    startScreen.setAttribute('aria-hidden', 'true')
+    howtoScreen.hidden = true
+    howtoScreen.setAttribute('aria-hidden', 'true')
+    gameScreen.hidden = false
+    gameScreen.setAttribute('aria-hidden', 'false')
+    layoutScaler.update()
+  },
 })
 
 const layoutScaler = new LayoutScaler(appRoot, [startScreen, howtoScreen, gameScreen], {
@@ -62,6 +81,19 @@ const layoutScaler = new LayoutScaler(appRoot, [startScreen, howtoScreen, gameSc
 })
 
 let hasStarted = false
+
+const showIntro = () => {
+  appRoot.dataset.screen = 'intro'
+  startScreen.hidden = false
+  startScreen.setAttribute('aria-hidden', 'false')
+  howtoScreen.hidden = true
+  howtoScreen.setAttribute('aria-hidden', 'true')
+  gameScreen.hidden = true
+  gameScreen.setAttribute('aria-hidden', 'true')
+  gameOverScreen.hidden = true
+  gameOverScreen.setAttribute('aria-hidden', 'true')
+  layoutScaler.update()
+}
 
 startButton.addEventListener('click', () => {
   if (hasStarted) return
@@ -77,6 +109,9 @@ startButton.addEventListener('click', () => {
   howtoScreen.setAttribute('aria-hidden', 'true')
   gameScreen.hidden = false
   gameScreen.setAttribute('aria-hidden', 'false')
+  gameOverScreen.hidden = true
+  gameOverScreen.setAttribute('aria-hidden', 'true')
+  pauseButton.disabled = false
   layoutScaler.update()
   app.start()
 })
@@ -95,14 +130,17 @@ howtoButton.addEventListener('click', () => {
 
 backToStartButton.addEventListener('click', () => {
   if (hasStarted) return
-  appRoot.dataset.screen = 'intro'
-  startScreen.hidden = false
-  startScreen.setAttribute('aria-hidden', 'false')
-  howtoScreen.hidden = true
-  howtoScreen.setAttribute('aria-hidden', 'true')
-  gameScreen.hidden = true
-  gameScreen.setAttribute('aria-hidden', 'true')
-  layoutScaler.update()
+  showIntro()
+})
+
+gameOverBackButton.addEventListener('click', () => {
+  app.stop()
+  hasStarted = false
+  startButton.disabled = false
+  startButton.dataset.started = 'false'
+  startButton.textContent = 'ゲームスタート'
+  pauseButton.disabled = true
+  showIntro()
 })
 
 const dispose = () => {

@@ -124,6 +124,19 @@ body {
   display: flex;
 }
 
+#app[data-screen='gameover'] #start-screen,
+#app[data-screen='gameover'] #howto-screen {
+  display: none;
+}
+
+#app[data-screen='gameover'] #game-screen {
+  display: grid;
+}
+
+#app[data-screen='gameover'] #gameover-screen {
+  display: flex;
+}
+
 .app-title {
   margin: 0;
   font-size: clamp(2rem, 5vw, 3.5rem);
@@ -205,6 +218,60 @@ body {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
   height: 100%;
   overflow: hidden;
+}
+
+.gameover-screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 4vw, 32px);
+  background: rgba(6, 8, 12, 0.82);
+  backdrop-filter: blur(4px);
+  text-align: center;
+  z-index: 20;
+}
+
+.gameover-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: clamp(20px, 4vw, 32px);
+  border-radius: 20px;
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.12), rgba(12, 14, 20, 0.92));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
+  width: min(92%, 360px);
+}
+
+.gameover-eyebrow {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.gameover-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  letter-spacing: 0.08em;
+}
+
+.gameover-score {
+  margin: 0;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.gameover-score span {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff0a5;
+  font-variant-numeric: tabular-nums;
 }
 
 .howto-header {
