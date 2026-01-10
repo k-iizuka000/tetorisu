@@ -559,7 +559,7 @@ export class GameApp {
     cellHeight: number,
   ) {
     const color = PIECE_COLORS[piece.type]
-    const padding = 2
+    const padding = Math.max(1, Math.min(cellWidth, cellHeight) * 0.08)
     const lineWidth = Math.max(1, Math.min(cellWidth, cellHeight) * 0.08)
 
     for (const block of piece.blocks) {
@@ -600,7 +600,7 @@ export class GameApp {
     const cellHeight = height / BOARD_VISIBLE_HEIGHT
 
     ctx.clearRect(0, 0, width, height)
-    ctx.fillStyle = '#0f1621'
+    ctx.fillStyle = '#0b1119'
     ctx.fillRect(0, 0, width, height)
 
     // Render settled blocks
@@ -661,13 +661,22 @@ export class GameApp {
   ) {
     const x = gridX * cellWidth
     const y = gridY * cellHeight
-    const padding = 2
+    const padding = Math.max(1, Math.min(cellWidth, cellHeight) * 0.1)
 
     ctx.fillStyle = PIECE_COLORS[type]
     ctx.fillRect(x + padding, y + padding, cellWidth - padding * 2, cellHeight - padding * 2)
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)'
-    ctx.fillRect(x + padding, y + padding, cellWidth - padding * 2, (cellHeight - padding * 2) / 3)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)'
+    ctx.fillRect(x + padding, y + padding, cellWidth - padding * 2, (cellHeight - padding * 2) * 0.28)
+
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)'
+    ctx.lineWidth = Math.max(1, Math.min(cellWidth, cellHeight) * 0.06)
+    ctx.strokeRect(
+      x + padding + ctx.lineWidth / 2,
+      y + padding + ctx.lineWidth / 2,
+      cellWidth - padding * 2 - ctx.lineWidth,
+      cellHeight - padding * 2 - ctx.lineWidth,
+    )
 
     if (isSpecial) {
       const gradient = ctx.createRadialGradient(

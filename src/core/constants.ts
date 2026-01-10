@@ -1,7 +1,7 @@
 import type { PieceType, Point, Rotation } from './types'
 
 export const BOARD_WIDTH = 10
-export const BOARD_VISIBLE_HEIGHT = 10
+export const BOARD_VISIBLE_HEIGHT = 20
 export const BOARD_HIDDEN_ROWS = 2
 export const BOARD_TOTAL_HEIGHT = BOARD_VISIBLE_HEIGHT + BOARD_HIDDEN_ROWS
 

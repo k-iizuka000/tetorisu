@@ -27,7 +27,7 @@ body {
   --page-padding-block: clamp(8px, 2vh, 16px);
   --page-padding-inline: clamp(12px, 3vw, 24px);
   padding: var(--page-padding-block) var(--page-padding-inline);
-  background: radial-gradient(circle at 50% 20%, #14161a, #050607 70%);
+  background: radial-gradient(circle at 50% 20%, #1b1f2a, #090b10 65%);
   touch-action: none;
 }
 
@@ -198,7 +198,7 @@ body {
   align-items: center;
   padding: clamp(12px, 2vw, 20px);
   border-radius: 16px;
-  background: linear-gradient(145deg, rgba(24, 28, 35, 0.85), rgba(7, 8, 9, 0.85));
+  background: linear-gradient(145deg, rgba(22, 28, 38, 0.92), rgba(7, 10, 14, 0.92));
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
@@ -208,7 +208,7 @@ body {
   max-width: 100%;
   max-height: 100%;
   aspect-ratio: 10 / 20;
-  background: #151b24;
+  background: #0d131b;
   border-radius: 8px;
   image-rendering: pixelated;
   touch-action: none;
