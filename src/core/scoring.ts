@@ -59,6 +59,10 @@ export class Scoring {
     return this.level
   }
 
+  get currentScore() {
+    return this.score
+  }
+
   snapshot(): GameStatsSnapshot {
     return {
       score: this.score,

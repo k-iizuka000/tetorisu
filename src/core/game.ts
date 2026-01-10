@@ -22,6 +22,8 @@ const SOFT_DROP_REWARD_POINTS = 50
 const HARD_DROP_REWARD_POINTS = 100
 const ITEM_BONUS_POINTS = 200
 const ITEM_MAX_SLOTS = 3
+const SCORE_SPEED_INTERVAL = 1000
+const SCORE_SPEED_STEP = 0.03
 
 export interface GameViewState {
   board: readonly (readonly (CellState | null)[])[]
@@ -247,11 +249,14 @@ export class Game {
     }
 
     const levelMultiplier = 1 + (this.scoring.currentLevel - 1) * 0.08
+    const scoreSteps = Math.floor(this.scoring.currentScore / SCORE_SPEED_INTERVAL)
+    const scoreMultiplier = 1 + scoreSteps * SCORE_SPEED_STEP
     const freezeMultiplier = this.activeEffects.freeze > 0 ? 0.35 : 1
     const gravityRate =
       this.rules.gravityPerSecond *
       (this.softDropActive ? this.rules.softDropMultiplier : 1) *
       levelMultiplier *
+      scoreMultiplier *
       freezeMultiplier
 
     this.fallAccumulator += gravityRate * deltaSeconds
