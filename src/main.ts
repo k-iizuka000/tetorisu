@@ -95,7 +95,7 @@ const showIntro = () => {
   layoutScaler.update()
 }
 
-startButton.addEventListener('click', () => {
+startButton.addEventListener('click', async () => {
   if (hasStarted) return
   hasStarted = true
   startButton.disabled = true
@@ -113,7 +113,7 @@ startButton.addEventListener('click', () => {
   gameOverScreen.setAttribute('aria-hidden', 'true')
   pauseButton.disabled = false
   layoutScaler.update()
-  app.start()
+  await app.start()
 })
 
 howtoButton.addEventListener('click', () => {

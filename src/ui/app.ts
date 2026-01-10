@@ -145,12 +145,12 @@ export class GameApp {
     }
   }
 
-  start() {
+  async start() {
     if (this.hasStarted) return
     this.hasStarted = true
     this.gameOverNotified = false
     this.pauseButton.textContent = 'Pause'
-    void this.sound.resume()
+    await this.sound.resume()
     this.sound.playGameStart()
     this.sound.startBgm()
     this.loop.start()
